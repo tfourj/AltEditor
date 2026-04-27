@@ -37,6 +37,7 @@ import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, Valida
 
 const storageKey = "alteditor.source.v1";
 const imgurClientId = import.meta.env.VITE_IMGUR_CLIENT_ID ?? "";
+const imgurUploadEnabled = import.meta.env.VITE_ENABLE_IMGUR_UPLOAD === "true";
 
 type ScreenshotDevice = "iphone" | "ipad";
 type ScreenshotObject = Extract<ScreenshotItem, { imageURL: string }>;
@@ -276,6 +277,7 @@ function ScreenshotDeviceSection({
   moveScreenshot,
   removeScreenshot,
   imgurClientId,
+  imgurUploadEnabled,
 }: {
   device: ScreenshotDevice;
   items: ScreenshotObject[];
@@ -284,6 +286,7 @@ function ScreenshotDeviceSection({
   moveScreenshot: (device: ScreenshotDevice, index: number, direction: -1 | 1) => void;
   removeScreenshot: (device: ScreenshotDevice, index: number) => void;
   imgurClientId: string;
+  imgurUploadEnabled: boolean;
 }) {
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState("");
@@ -314,6 +317,10 @@ function ScreenshotDeviceSection({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (!imgurUploadEnabled) {
+      setStatus("Imgur uploads are disabled");
+      return;
+    }
     if (!imgurClientId.trim()) {
       setStatus("Imgur Client ID is not configured");
       return;
@@ -341,12 +348,14 @@ function ScreenshotDeviceSection({
           </h4>
           <span>{items.length} screenshots</span>
         </div>
-        <div className="button-row">
-          <button className="secondary" disabled={busy} onClick={() => fileInput.current?.click()} type="button">
-            <Upload size={15} /> Upload
-          </button>
-          <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
-        </div>
+        {imgurUploadEnabled && (
+          <div className="button-row">
+            <button className="secondary" disabled={busy || !imgurClientId.trim()} onClick={() => fileInput.current?.click()} type="button">
+              <Upload size={15} /> Upload
+            </button>
+            <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
+          </div>
+        )}
       </div>
 
       <div className="screenshot-add-row">
@@ -432,6 +441,7 @@ function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
             device={device}
             items={lists[device]}
             imgurClientId={imgurClientId}
+            imgurUploadEnabled={imgurUploadEnabled}
             addScreenshot={(target, item) => setDeviceItems(target, [...lists[target], item])}
             updateScreenshot={(target, index, item) => setDeviceItems(target, lists[target].map((current, itemIndex) => (itemIndex === index ? item : current)))}
             moveScreenshot={moveDeviceItem}
