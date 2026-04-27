@@ -36,8 +36,8 @@ import {
 import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, ValidationIssue } from "./types";
 
 const storageKey = "alteditor.source.v1";
-const imgurClientId = import.meta.env.VITE_IMGUR_CLIENT_ID ?? "";
-const imgurUploadEnabled = import.meta.env.VITE_ENABLE_IMGUR_UPLOAD === "true";
+const freeimageHostApiKey = import.meta.env.VITE_FREEIMAGE_HOST_API_KEY ?? "";
+const imageUploadEnabled = import.meta.env.VITE_ENABLE_IMAGE_UPLOAD === "true";
 
 type ScreenshotDevice = "iphone" | "ipad";
 type ScreenshotObject = Extract<ScreenshotItem, { imageURL: string }>;
@@ -114,20 +114,31 @@ const getFileImageSize = async (file: File): Promise<Pick<ScreenshotObject, "wid
   }
 };
 
-const uploadToImgur = async (file: File, clientId: string): Promise<string> => {
-  const formData = new FormData();
-  formData.append("image", file);
+const asFiniteNumber = (value: unknown): number | undefined => {
+  const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  return Number.isFinite(number) ? number : undefined;
+};
 
-  const response = await fetch("https://api.imgur.com/3/image", {
+const uploadToFreeimageHost = async (file: File, apiKey: string): Promise<ScreenshotObject> => {
+  const formData = new FormData();
+  formData.append("key", apiKey);
+  formData.append("action", "upload");
+  formData.append("format", "json");
+  formData.append("source", file);
+
+  const response = await fetch("https://freeimage.host/api/1/upload", {
     method: "POST",
-    headers: {
-      Authorization: `Client-ID ${clientId}`,
-    },
     body: formData,
   });
   const body = await response.json();
-  if (!response.ok || !body?.data?.link) throw new Error(body?.data?.error ?? "Imgur upload failed.");
-  return body.data.link;
+  if (!response.ok || body?.status_code !== 200 || !body?.image?.url) {
+    throw new Error(body?.error?.message ?? body?.status_txt ?? "Image upload failed.");
+  }
+  return {
+    imageURL: body.image.url,
+    width: asFiniteNumber(body.image.width),
+    height: asFiniteNumber(body.image.height),
+  };
 };
 
 const field = (label: string, value: string | undefined, onChange: (value: string) => void, props?: { placeholder?: string; textarea?: boolean; type?: string }) => (
@@ -276,8 +287,8 @@ function ScreenshotDeviceSection({
   updateScreenshot,
   moveScreenshot,
   removeScreenshot,
-  imgurClientId,
-  imgurUploadEnabled,
+  uploadApiKey,
+  imageUploadEnabled,
 }: {
   device: ScreenshotDevice;
   items: ScreenshotObject[];
@@ -285,8 +296,8 @@ function ScreenshotDeviceSection({
   updateScreenshot: (device: ScreenshotDevice, index: number, item: ScreenshotObject) => void;
   moveScreenshot: (device: ScreenshotDevice, index: number, direction: -1 | 1) => void;
   removeScreenshot: (device: ScreenshotDevice, index: number) => void;
-  imgurClientId: string;
-  imgurUploadEnabled: boolean;
+  uploadApiKey: string;
+  imageUploadEnabled: boolean;
 }) {
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState("");
@@ -317,21 +328,23 @@ function ScreenshotDeviceSection({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (!imgurUploadEnabled) {
-      setStatus("Imgur uploads are disabled");
+    if (!imageUploadEnabled) {
+      setStatus("Image uploads are disabled");
       return;
     }
-    if (!imgurClientId.trim()) {
-      setStatus("Imgur Client ID is not configured");
+    if (!uploadApiKey.trim()) {
+      setStatus("Freeimage.host API key is not configured");
       return;
     }
 
     setBusy(true);
     setStatus(`Uploading ${file.name}`);
     try {
-      const [size, imageURL] = await Promise.all([getFileImageSize(file), uploadToImgur(file, imgurClientId.trim())]);
-      addScreenshot(device, { imageURL, ...size });
-      setStatus(`Uploaded ${size.width}x${size.height}`);
+      const [localSize, uploaded] = await Promise.all([getFileImageSize(file), uploadToFreeimageHost(file, uploadApiKey.trim())]);
+      const width = uploaded.width ?? localSize.width;
+      const height = uploaded.height ?? localSize.height;
+      addScreenshot(device, { ...uploaded, width, height });
+      setStatus(`Uploaded ${width}x${height}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Upload failed");
     } finally {
@@ -348,9 +361,9 @@ function ScreenshotDeviceSection({
           </h4>
           <span>{items.length} screenshots</span>
         </div>
-        {imgurUploadEnabled && (
+        {imageUploadEnabled && (
           <div className="button-row">
-            <button className="secondary" disabled={busy || !imgurClientId.trim()} onClick={() => fileInput.current?.click()} type="button">
+            <button className="secondary" disabled={busy || !uploadApiKey.trim()} onClick={() => fileInput.current?.click()} type="button">
               <Upload size={15} /> Upload
             </button>
             <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
@@ -440,8 +453,8 @@ function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
             key={device}
             device={device}
             items={lists[device]}
-            imgurClientId={imgurClientId}
-            imgurUploadEnabled={imgurUploadEnabled}
+            uploadApiKey={freeimageHostApiKey}
+            imageUploadEnabled={imageUploadEnabled}
             addScreenshot={(target, item) => setDeviceItems(target, [...lists[target], item])}
             updateScreenshot={(target, index, item) => setDeviceItems(target, lists[target].map((current, itemIndex) => (itemIndex === index ? item : current)))}
             moveScreenshot={moveDeviceItem}
