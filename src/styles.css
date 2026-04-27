@@ -197,9 +197,13 @@ summary span {
 }
 
 .workspace {
+  align-content: start;
   display: grid;
   gap: 20px;
+  justify-self: center;
+  max-width: 1120px;
   padding: 26px;
+  width: 100%;
 }
 
 .topbar,
@@ -252,6 +256,7 @@ summary,
   display: grid;
   gap: 16px;
   padding: 18px;
+  width: 100%;
 }
 
 .stack {
@@ -264,6 +269,7 @@ summary,
   border: 1px solid #dce2ec;
   border-radius: 8px;
   padding: 16px 18px;
+  width: 100%;
 }
 
 .eyebrow {
