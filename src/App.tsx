@@ -1,5 +1,7 @@
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
   Check,
   Code2,
   Copy,
@@ -35,6 +37,7 @@ import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, Valida
 
 const storageKey = "alteditor.source.v1";
 const imgurClientIdKey = "alteditor.imgurClientId.v1";
+const defaultImgurClientId = import.meta.env.VITE_IMGUR_CLIENT_ID ?? "";
 
 type ScreenshotDevice = "iphone" | "ipad";
 type ScreenshotObject = Extract<ScreenshotItem, { imageURL: string }>;
@@ -271,6 +274,7 @@ function ScreenshotDeviceSection({
   items,
   addScreenshot,
   updateScreenshot,
+  moveScreenshot,
   removeScreenshot,
   imgurClientId,
 }: {
@@ -278,6 +282,7 @@ function ScreenshotDeviceSection({
   items: ScreenshotObject[];
   addScreenshot: (device: ScreenshotDevice, item: ScreenshotObject) => void;
   updateScreenshot: (device: ScreenshotDevice, index: number, item: ScreenshotObject) => void;
+  moveScreenshot: (device: ScreenshotDevice, index: number, direction: -1 | 1) => void;
   removeScreenshot: (device: ScreenshotDevice, index: number) => void;
   imgurClientId: string;
 }) {
@@ -311,7 +316,7 @@ function ScreenshotDeviceSection({
     event.target.value = "";
     if (!file) return;
     if (!imgurClientId.trim()) {
-      setStatus("Enter an Imgur Client ID first");
+      setStatus("Imgur Client ID is not configured");
       return;
     }
 
@@ -373,9 +378,17 @@ function ScreenshotDeviceSection({
                 >
                   Read size
                 </button>
-                <button className="icon-button danger" onClick={() => removeScreenshot(device, index)} type="button" aria-label={`Remove ${label} screenshot`}>
-                  <Trash2 size={16} />
-                </button>
+                <div className="screenshot-actions">
+                  <button className="icon-button secondary" disabled={index === 0} onClick={() => moveScreenshot(device, index, -1)} type="button" aria-label={`Move ${label} screenshot up`}>
+                    <ArrowUp size={16} />
+                  </button>
+                  <button className="icon-button secondary" disabled={index === items.length - 1} onClick={() => moveScreenshot(device, index, 1)} type="button" aria-label={`Move ${label} screenshot down`}>
+                    <ArrowDown size={16} />
+                  </button>
+                  <button className="icon-button danger" onClick={() => removeScreenshot(device, index)} type="button" aria-label={`Remove ${label} screenshot`}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -388,12 +401,8 @@ function ScreenshotDeviceSection({
 }
 
 function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: Partial<AltApp>) => void }) {
-  const [imgurClientId, setImgurClientId] = useState(() => localStorage.getItem(imgurClientIdKey) ?? "");
+  const imgurClientId = defaultImgurClientId || localStorage.getItem(imgurClientIdKey) || "";
   const lists = getScreenshotLists(app.screenshots);
-
-  useEffect(() => {
-    localStorage.setItem(imgurClientIdKey, imgurClientId);
-  }, [imgurClientId]);
 
   const setDeviceItems = (device: ScreenshotDevice, items: ScreenshotObject[]) => {
     const current = Array.isArray(app.screenshots) ? {} : app.screenshots ?? {};
@@ -405,20 +414,19 @@ function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
       },
     });
   };
+  const moveDeviceItem = (device: ScreenshotDevice, index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= lists[device].length) return;
+    const items = [...lists[device]];
+    [items[index], items[nextIndex]] = [items[nextIndex], items[index]];
+    setDeviceItems(device, items);
+  };
 
   return (
     <section className="screenshot-manager">
       <div className="subsection-title">
         <h3>Screenshots</h3>
       </div>
-      <label className="field">
-        <span>Imgur Client ID</span>
-        <input
-          value={imgurClientId}
-          placeholder="Required for automatic file uploads"
-          onChange={(event) => setImgurClientId(event.target.value)}
-        />
-      </label>
       <div className="screenshot-devices">
         {(["iphone", "ipad"] as ScreenshotDevice[]).map((device) => (
           <ScreenshotDeviceSection
@@ -428,6 +436,7 @@ function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
             imgurClientId={imgurClientId}
             addScreenshot={(target, item) => setDeviceItems(target, [...lists[target], item])}
             updateScreenshot={(target, index, item) => setDeviceItems(target, lists[target].map((current, itemIndex) => (itemIndex === index ? item : current)))}
+            moveScreenshot={moveDeviceItem}
             removeScreenshot={(target, index) => setDeviceItems(target, lists[target].filter((_, itemIndex) => itemIndex !== index))}
           />
         ))}

@@ -526,6 +526,12 @@ details > :not(summary) {
   min-width: 0;
 }
 
+.screenshot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .subsection-title h3 {
   font-size: 16px;
   margin: 0;
