@@ -155,6 +155,17 @@ const numberField = (label: string, value: number, onChange: (value: number) => 
   </label>
 );
 
+const compactEntitlements = (items: string[]): string[] => items.map((item) => item.trim()).filter(Boolean);
+
+const toPrivacyRecord = (entries: Array<[string, string]>): Record<string, string> =>
+  Object.fromEntries(entries.map(([key, value]) => [key.trim(), value.trim()]).filter(([key, value]) => key && value));
+
+const sameStringArray = (left: string[], right: string[]): boolean =>
+  left.length === right.length && left.every((item, index) => item === right[index]);
+
+const samePrivacyEntries = (left: Array<[string, string]>, right: Array<[string, string]>): boolean =>
+  left.length === right.length && left.every(([key, value], index) => key === right[index][0] && value === right[index][1]);
+
 function ValidationPanel({ issues }: { issues: ValidationIssue[] }) {
   if (!issues.length) {
     return (
@@ -488,6 +499,137 @@ function VersionEditor({
   );
 }
 
+function PermissionEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: Partial<AltApp>) => void }) {
+  const permissions = app.appPermissions ?? makePermissions();
+  const privacyRecordEntries = Object.entries(permissions.privacy);
+  const appEntitlements = permissions.entitlements;
+  const appPrivacyEntries: Array<[string, string]> = privacyRecordEntries.length ? privacyRecordEntries : [];
+  const [entitlementDrafts, setEntitlementDrafts] = useState<string[]>(appEntitlements.length ? appEntitlements : [""]);
+  const [privacyDrafts, setPrivacyDrafts] = useState<Array<[string, string]>>(appPrivacyEntries.length ? appPrivacyEntries : [["", ""]]);
+
+  useEffect(() => {
+    if (!sameStringArray(compactEntitlements(entitlementDrafts), appEntitlements)) {
+      setEntitlementDrafts(appEntitlements.length ? appEntitlements : [""]);
+    }
+  }, [appEntitlements, entitlementDrafts]);
+
+  useEffect(() => {
+    if (!samePrivacyEntries(Object.entries(toPrivacyRecord(privacyDrafts)), appPrivacyEntries)) {
+      setPrivacyDrafts(appPrivacyEntries.length ? appPrivacyEntries : [["", ""]]);
+    }
+  }, [appPrivacyEntries, privacyDrafts]);
+
+  const updateEntitlements = (items: string[]) => {
+    setEntitlementDrafts(items.length ? items : [""]);
+    updateApp({
+      appPermissions: {
+        ...permissions,
+        entitlements: compactEntitlements(items),
+      },
+    });
+  };
+
+  const updatePrivacy = (entries: Array<[string, string]>) => {
+    setPrivacyDrafts(entries.length ? entries : [["", ""]]);
+    updateApp({
+      appPermissions: {
+        ...permissions,
+        privacy: toPrivacyRecord(entries),
+      },
+    });
+  };
+
+  return (
+    <div className="permission-editor">
+      <div className="permission-panel">
+        <div className="permission-header">
+          <h3>Entitlements</h3>
+          <button className="small-button" onClick={() => setEntitlementDrafts([...entitlementDrafts, ""])} type="button">
+            <Plus size={15} /> Add entitlement
+          </button>
+        </div>
+        <div className="permission-list">
+          {entitlementDrafts.map((entitlement, entitlementIndex) => (
+            <div className="permission-row entitlement-row" key={entitlementIndex}>
+              <label className="field">
+                <span>Key</span>
+                <input
+                  value={entitlement}
+                  placeholder="com.apple.developer.networking.wifi-info"
+                  onChange={(event) =>
+                    updateEntitlements(
+                      entitlementDrafts.map((item, itemIndex) => (itemIndex === entitlementIndex ? event.target.value : item)),
+                    )
+                  }
+                />
+              </label>
+              <button
+                className="icon-button danger"
+                onClick={() => updateEntitlements(entitlementDrafts.filter((_, itemIndex) => itemIndex !== entitlementIndex))}
+                type="button"
+                aria-label="Remove entitlement"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="permission-panel">
+        <div className="permission-header">
+          <h3>Privacy permissions</h3>
+          <button className="small-button" onClick={() => setPrivacyDrafts([...privacyDrafts, ["", ""]])} type="button">
+            <Plus size={15} /> Add permission
+          </button>
+        </div>
+        <div className="permission-list">
+          {privacyDrafts.map(([key, value], privacyIndex) => (
+            <div className="permission-row privacy-row" key={privacyIndex}>
+              <label className="field">
+                <span>Key</span>
+                <input
+                  value={key}
+                  placeholder="NSCameraUsageDescription"
+                  onChange={(event) =>
+                    updatePrivacy(
+                      privacyDrafts.map((entry, itemIndex) =>
+                        itemIndex === privacyIndex ? [event.target.value, entry[1]] as [string, string] : entry,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>Value</span>
+                <input
+                  value={value}
+                  placeholder="Reason shown to users"
+                  onChange={(event) =>
+                    updatePrivacy(
+                      privacyDrafts.map((entry, itemIndex) =>
+                        itemIndex === privacyIndex ? [entry[0], event.target.value] as [string, string] : entry,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <button
+                className="icon-button danger"
+                onClick={() => updatePrivacy(privacyDrafts.filter((_, itemIndex) => itemIndex !== privacyIndex))}
+                type="button"
+                aria-label="Remove privacy permission"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppEditor({
   app,
   index,
@@ -499,11 +641,6 @@ function AppEditor({
   updateApp: (patch: Partial<AltApp>) => void;
   removeApp: () => void;
 }) {
-  const privacyText = Object.entries(app.appPermissions?.privacy ?? {})
-    .map(([key, value]) => `${key}: ${value}`)
-    .join("\n");
-  const entitlementsText = (app.appPermissions?.entitlements ?? []).join("\n");
-
   return (
     <details className="panel item-panel" open={index === 0}>
       <summary>
@@ -563,46 +700,7 @@ function AppEditor({
         />
       ))}
 
-      <div className="grid two">
-        <label className="field">
-          <span>Entitlements</span>
-          <textarea
-            value={entitlementsText}
-            rows={4}
-            placeholder="One entitlement per line"
-            onChange={(event) =>
-              updateApp({
-                appPermissions: {
-                  ...(app.appPermissions ?? makePermissions()),
-                  entitlements: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
-                },
-              })
-            }
-          />
-        </label>
-        <label className="field">
-          <span>Privacy permissions</span>
-          <textarea
-            value={privacyText}
-            rows={4}
-            placeholder="NSCameraUsageDescription: Reason"
-            onChange={(event) =>
-              updateApp({
-                appPermissions: {
-                  ...(app.appPermissions ?? makePermissions()),
-                  privacy: Object.fromEntries(
-                    event.target.value
-                      .split("\n")
-                      .map((line) => line.split(":"))
-                      .filter(([key, ...rest]) => key.trim() && rest.join(":").trim())
-                      .map(([key, ...rest]) => [key.trim(), rest.join(":").trim()]),
-                  ),
-                },
-              })
-            }
-          />
-        </label>
-      </div>
+      <PermissionEditor app={app} updateApp={updateApp} />
 
       <div className="subsection-title">
         <h3>Patreon</h3>

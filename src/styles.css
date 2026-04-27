@@ -436,6 +436,54 @@ details > :not(summary) {
   padding: 14px;
 }
 
+.permission-editor {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.permission-panel {
+  background: #f8fafc;
+  border: 1px solid #dce2ec;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.permission-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.permission-header h3 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.permission-list {
+  display: grid;
+  gap: 10px;
+}
+
+.permission-row {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.entitlement-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.privacy-row {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) auto;
+}
+
 .screenshot-manager {
   border-top: 1px solid #dce2ec;
   display: grid;
@@ -750,6 +798,7 @@ details > :not(summary) {
   .grid.two,
   .grid.three,
   .grid.four,
+  .permission-editor,
   .screenshot-devices {
     grid-template-columns: 1fr;
   }
@@ -786,6 +835,20 @@ details > :not(summary) {
 
   .screenshot-add-row,
   .screenshot-card {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-header,
+  .permission-row {
+    align-items: stretch;
+  }
+
+  .permission-header {
+    flex-direction: column;
+  }
+
+  .entitlement-row,
+  .privacy-row {
     grid-template-columns: 1fr;
   }
 }
