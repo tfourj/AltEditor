@@ -36,8 +36,7 @@ import {
 import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, ValidationIssue } from "./types";
 
 const storageKey = "alteditor.source.v1";
-const imgurClientIdKey = "alteditor.imgurClientId.v1";
-const defaultImgurClientId = import.meta.env.VITE_IMGUR_CLIENT_ID ?? "";
+const imgurClientId = import.meta.env.VITE_IMGUR_CLIENT_ID ?? "";
 
 type ScreenshotDevice = "iphone" | "ipad";
 type ScreenshotObject = Extract<ScreenshotItem, { imageURL: string }>;
@@ -401,7 +400,6 @@ function ScreenshotDeviceSection({
 }
 
 function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: Partial<AltApp>) => void }) {
-  const imgurClientId = defaultImgurClientId || localStorage.getItem(imgurClientIdKey) || "";
   const lists = getScreenshotLists(app.screenshots);
 
   const setDeviceItems = (device: ScreenshotDevice, items: ScreenshotObject[]) => {
