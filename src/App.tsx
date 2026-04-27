@@ -19,6 +19,7 @@ export default function App() {
   const [showCode, setShowCode] = useState(false);
   const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
   const [notice, setNotice] = useState("");
+  const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
 
   const source = useMemo(() => {
@@ -86,12 +87,41 @@ export default function App() {
     event.target.value = "";
     if (!file) return;
     try {
-      addSource(parseSourceText(await file.text()));
+      const parsed = parseSourceText(await file.text());
+      const existing = store.sources.find((s) => s.source.name === parsed.name);
+      if (existing) {
+        setPendingImport({ source: parsed, fileName: file.name });
+        return;
+      }
+      addSource(parsed);
       setActiveTab("source");
       setNotice(`Imported ${file.name}`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Import failed.");
     }
+  };
+
+  const resolveImport = (action: "replace" | "add" | "cancel") => {
+    if (!pendingImport) return;
+    if (action === "replace") {
+      const existing = store.sources.find((s) => s.source.name === pendingImport.source.name);
+      if (existing) {
+        setStore((prev) => ({
+          sources: prev.sources.map((s) =>
+            s.id === existing.id ? { ...s, source: pendingImport.source, lastModified: Date.now() } : s,
+          ),
+          activeId: existing.id,
+        }));
+        setNotice(`Replaced '${pendingImport.source.name}'`);
+      }
+    } else if (action === "add") {
+      addSource(pendingImport.source);
+      setNotice(`Imported ${pendingImport.fileName}`);
+    } else {
+      setNotice("Import cancelled");
+    }
+    setPendingImport(null);
+    setActiveTab("source");
   };
 
   const scanArchive = async (file: File) => {
@@ -162,6 +192,32 @@ export default function App() {
           openSource={selectSource}
         />
         <input ref={importInput} hidden type="file" accept=".json,.md,.txt" onChange={importJson} />
+        {pendingImport && (
+          <div className="modal-backdrop" role="dialog" aria-modal="true">
+            <div className="modal">
+              <div className="modal-header">
+                <div>
+                  <p className="eyebrow">Import source</p>
+                  <h2>Name conflict</h2>
+                </div>
+              </div>
+              <p>
+                A source named &ldquo;{pendingImport.source.name}&rdquo; already exists. How would you like to proceed?
+              </p>
+              <div className="button-row">
+                <button onClick={() => resolveImport("replace")} type="button">
+                  Replace
+                </button>
+                <button className="secondary" onClick={() => resolveImport("add")} type="button">
+                  Add anyway
+                </button>
+                <button className="secondary" onClick={() => resolveImport("cancel")} type="button">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -275,6 +331,32 @@ export default function App() {
           close={() => setScannedApp(null)}
           importToEditor={importScannedApp}
         />
+      )}
+      {pendingImport && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-header">
+              <div>
+                <p className="eyebrow">Import source</p>
+                <h2>Name conflict</h2>
+              </div>
+            </div>
+            <p>
+              A source named &ldquo;{pendingImport.source.name}&rdquo; already exists. How would you like to proceed?
+            </p>
+            <div className="button-row">
+              <button onClick={() => resolveImport("replace")} type="button">
+                Replace
+              </button>
+              <button className="secondary" onClick={() => resolveImport("add")} type="button">
+                Add anyway
+              </button>
+              <button className="secondary" onClick={() => resolveImport("cancel")} type="button">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
