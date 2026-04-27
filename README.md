@@ -1,5 +1,17 @@
 # AltEditor
-AltStore PAL Repository Editor
+
+AltStore PAL repository editor. Create, import, and manage AltStore source JSON files in the browser. Inspired by [altstudio.app](https://altstudio.app).
+
+## Features
+
+- Create and edit AltStore PAL source repositories
+- Import source JSON from a local file
+- Manage apps with multiple versions, permissions, and screenshots
+- Scan IPA and ADP archives to extract app metadata
+- News and announcement management
+- Source validation with inline issue reporting
+- Export formatted JSON for distribution
+- All data persists locally in the browser (localStorage)
 
 ## Image uploads
 
