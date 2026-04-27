@@ -1,13 +1,18 @@
-import { Import, Plus } from "lucide-react";
+import { Import, Pencil, Plus } from "lucide-react";
+import type { StoredSource } from "../lib/sourceStorage";
 
 export function HomeScreen({
   createExample,
   importProject,
   notice,
+  savedSources,
+  openSource,
 }: {
   createExample: () => void;
   importProject: () => void;
   notice: string;
+  savedSources: StoredSource[];
+  openSource: (id: string) => void;
 }) {
   return (
     <main className="home-screen">
@@ -19,6 +24,25 @@ export function HomeScreen({
             <span>AltStore PAL repository editor</span>
           </div>
         </div>
+
+        {savedSources.length > 0 && (
+          <div className="saved-sources-section">
+            <p className="eyebrow">Saved Sources</p>
+            {savedSources.map((s) => (
+              <button
+                key={s.id}
+                className="saved-source-item"
+                onClick={() => openSource(s.id)}
+                type="button"
+              >
+                <Pencil size={15} />
+                <span>{s.source.name || "Untitled Source"}</span>
+                <small>{s.source.apps.length} apps, {s.source.news.length} news</small>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="home-copy">
           <p className="eyebrow">Start</p>
           <h2>Create or import a repository</h2>

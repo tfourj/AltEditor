@@ -122,6 +122,42 @@ button:disabled {
   padding: 12px;
 }
 
+.saved-sources-section {
+  border-bottom: 1px solid #dce2ec;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 18px;
+}
+
+.saved-source-item {
+  align-items: center;
+  background: #f6f8fb;
+  border: 1px solid #dce2ec;
+  border-radius: 8px;
+  color: #172033;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.saved-source-item:hover {
+  background: #eef2f9;
+  border-color: #bcc4d6;
+}
+
+.saved-source-item span {
+  flex: 1;
+  font-weight: 600;
+}
+
+.saved-source-item small {
+  color: #66758d;
+  font-size: 12px;
+}
+
 .sidebar {
   background: #172033;
   color: #f6f8fb;
@@ -179,6 +215,79 @@ summary span {
   display: flex;
   gap: 12px;
   padding: 12px;
+}
+
+.source-selector {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+}
+
+.source-switch-dropdown {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #f6f8fb;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 28px 6px 10px;
+  width: 100%;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23aeb9ca' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 6px center;
+  background-repeat: no-repeat;
+  background-size: 18px;
+}
+
+.source-switch-dropdown:focus {
+  border-color: #1f6feb;
+  outline: none;
+}
+
+.source-switch-dropdown option {
+  background: #172033;
+  color: #f6f8fb;
+}
+
+.source-selector-meta {
+  color: #aeb9ca;
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.source-selector-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.source-selector-actions button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #aeb9ca;
+  cursor: pointer;
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.source-selector-actions button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f6f8fb;
+}
+
+.source-selector-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .side-actions {

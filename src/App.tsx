@@ -1,4 +1,4 @@
-import { Code2, Download, ExternalLink, FileJson, Import, Newspaper, Plus, Smartphone } from "lucide-react";
+import { Code2, Copy, Download, ExternalLink, FileJson, Import, Newspaper, Plus, Smartphone, Trash2 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { scanArchiveForApp } from "./archiveScanner";
@@ -9,32 +9,84 @@ import { CodeModal, ScannedArchiveModal, type ScannedFieldKey } from "./componen
 import { NewsEditor } from "./components/NewsEditor";
 import { SourceEditor } from "./components/SourceEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
-import { clone, downloadText, readStoredSource, storageKey, toFileName } from "./lib/sourceStorage";
+import { clone, downloadText, generateId, readSourcesStore, toFileName, writeSourcesStore, type SourcesStore } from "./lib/sourceStorage";
 import { compactForExport, exampleSource, makeApp, parseSourceText, validateSource } from "./sourceModel";
 import type { AltApp, AltSource } from "./types";
 
 export default function App() {
-  const [source, setSource] = useState<AltSource | null>(readStoredSource);
+  const [store, setStore] = useState<SourcesStore>(readSourcesStore);
   const [activeTab, setActiveTab] = useState<"source" | "apps" | "news">("source");
   const [showCode, setShowCode] = useState(false);
   const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
   const [notice, setNotice] = useState("");
   const importInput = useRef<HTMLInputElement>(null);
 
-  const updateSource = (patch: Partial<AltSource>) => setSource((current) => (current ? { ...current, ...patch } : current));
+  const source = useMemo(() => {
+    if (!store.activeId) return null;
+    return store.sources.find((s) => s.id === store.activeId)?.source ?? null;
+  }, [store]);
+
+  const updateSource = (patch: Partial<AltSource>) =>
+    setStore((prev) => {
+      if (!prev.activeId) return prev;
+      return {
+        ...prev,
+        sources: prev.sources.map((s) =>
+          s.id === prev.activeId ? { ...s, source: { ...s.source, ...patch }, lastModified: Date.now() } : s,
+        ),
+      };
+    });
+
   const issues = useMemo(() => (source ? validateSource(source) : []), [source]);
   const code = useMemo(() => (source ? JSON.stringify(compactForExport(source), null, 2) : ""), [source]);
 
   useEffect(() => {
-    if (source) localStorage.setItem(storageKey, JSON.stringify(source));
-  }, [source]);
+    writeSourcesStore(store);
+  }, [store]);
+
+  const addSource = (newSource: AltSource) => {
+    const id = generateId();
+    setStore((prev) => ({
+      sources: [...prev.sources, { id, source: newSource, lastModified: Date.now() }],
+      activeId: id,
+    }));
+  };
+
+  const selectSource = (id: string) =>
+    setStore((prev) => (prev.sources.some((s) => s.id === id) ? { ...prev, activeId: id } : prev));
+
+  const deleteSource = (id: string) => {
+    setStore((prev) => {
+      const nextSources = prev.sources.filter((s) => s.id !== id);
+      return {
+        sources: nextSources,
+        activeId: prev.activeId === id ? (nextSources[0]?.id ?? null) : prev.activeId,
+      };
+    });
+    setNotice("Source deleted");
+  };
+
+  const duplicateSource = (id: string) => {
+    setStore((prev) => {
+      const target = prev.sources.find((s) => s.id === id);
+      if (!target) return prev;
+      const newId = generateId();
+      const duplicated = clone(target.source);
+      duplicated.name = `${duplicated.name} (copy)`;
+      return {
+        sources: [...prev.sources, { id: newId, source: duplicated, lastModified: Date.now() }],
+        activeId: newId,
+      };
+    });
+    setNotice("Source duplicated");
+  };
 
   const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     try {
-      setSource(parseSourceText(await file.text()));
+      addSource(parseSourceText(await file.text()));
       setActiveTab("source");
       setNotice(`Imported ${file.name}`);
     } catch (error) {
@@ -54,33 +106,28 @@ export default function App() {
   };
 
   const importScannedApp = (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean) => {
-    if (!scannedApp) return;
-    setSource((current) => {
-      if (!current) return current;
-      const targetIndex = current.apps.findIndex((app) => app.bundleIdentifier === scannedApp.bundleIdentifier);
-      const patch: Partial<AltApp> = {};
-      if (fields.name) patch.name = scannedApp.name;
-      if (fields.bundleIdentifier) patch.bundleIdentifier = scannedApp.bundleIdentifier;
-      if (fields.marketplaceID) patch.marketplaceID = scannedApp.marketplaceID;
+    if (!scannedApp || !source) return;
+    const targetIndex = source.apps.findIndex((app) => app.bundleIdentifier === scannedApp.bundleIdentifier);
+    const patch: Partial<AltApp> = {};
+    if (fields.name) patch.name = scannedApp.name;
+    if (fields.bundleIdentifier) patch.bundleIdentifier = scannedApp.bundleIdentifier;
+    if (fields.marketplaceID) patch.marketplaceID = scannedApp.marketplaceID;
 
-      if (targetIndex === -1) {
-        return {
-          ...current,
-          apps: [
-            ...current.apps,
-            {
-              ...makeApp(),
-              ...patch,
-              versions: addVersion ? scannedApp.versions : [],
-              appPermissions: scannedApp.appPermissions,
-            },
-          ],
-        };
-      }
-
-      return {
-        ...current,
-        apps: current.apps.map((app, index) => {
+    if (targetIndex === -1) {
+      updateSource({
+        apps: [
+          ...source.apps,
+          {
+            ...makeApp(),
+            ...patch,
+            versions: addVersion ? scannedApp.versions : [],
+            appPermissions: scannedApp.appPermissions,
+          },
+        ],
+      });
+    } else {
+      updateSource({
+        apps: source.apps.map((app, index) => {
           if (index !== targetIndex) return app;
           const version = scannedApp.versions[0];
           const hasVersion = app.versions.some((item) => item.version === version.version && item.buildVersion === version.buildVersion);
@@ -91,15 +138,15 @@ export default function App() {
             appPermissions: scannedApp.appPermissions,
           };
         }),
-      };
-    });
+      });
+    }
     setScannedApp(null);
     setActiveTab("apps");
     setNotice("Imported scanned data");
   };
 
   const createExample = () => {
-    setSource(clone(exampleSource));
+    addSource(clone(exampleSource));
     setActiveTab("source");
     setNotice("Created default example repo");
   };
@@ -107,7 +154,13 @@ export default function App() {
   if (!source) {
     return (
       <>
-        <HomeScreen createExample={createExample} importProject={() => importInput.current?.click()} notice={notice} />
+        <HomeScreen
+          createExample={createExample}
+          importProject={() => importInput.current?.click()}
+          notice={notice}
+          savedSources={store.sources}
+          openSource={selectSource}
+        />
         <input ref={importInput} hidden type="file" accept=".json,.md,.txt" onChange={importJson} />
       </>
     );
@@ -124,11 +177,40 @@ export default function App() {
           </div>
         </div>
 
-        <div className="source-card">
-          <ImagePreview url={source.iconURL} label="Current source icon" />
-          <div>
-            <strong>{source.name || "Untitled Source"}</strong>
-            <span>{source.subtitle || `${source.apps.length} apps, ${source.news.length} news items`}</span>
+        <div className="source-selector">
+          <select
+            className="source-switch-dropdown"
+            value={store.activeId ?? ""}
+            onChange={(e) => selectSource(e.target.value)}
+          >
+            {store.sources.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.source.name || "Untitled Source"}
+              </option>
+            ))}
+          </select>
+          <span className="source-selector-meta">
+            {source.subtitle || `${source.apps.length} apps, ${source.news.length} news items`}
+          </span>
+          <div className="source-selector-actions">
+            <button title="New source" onClick={createExample} type="button">
+              <Plus size={14} />
+            </button>
+            <button
+              title="Duplicate source"
+              onClick={() => store.activeId && duplicateSource(store.activeId)}
+              type="button"
+            >
+              <Copy size={14} />
+            </button>
+            <button
+              title="Delete source"
+              onClick={() => store.activeId && deleteSource(store.activeId)}
+              disabled={store.sources.length <= 1}
+              type="button"
+            >
+              <Trash2 size={14} />
+            </button>
           </div>
         </div>
 
