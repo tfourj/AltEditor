@@ -33,10 +33,18 @@ const storageKey = "alteditor.source.v1";
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
+const isDefaultSeed = (source: AltSource): boolean =>
+  source.name === exampleSource.name &&
+  source.iconURL === exampleSource.iconURL &&
+  source.apps.length === 0 &&
+  source.news.length === 0;
+
 const readStoredSource = (): AltSource | null => {
   try {
     const stored = localStorage.getItem(storageKey);
-    return stored ? normalizeSource(JSON.parse(stored)) : null;
+    if (!stored) return null;
+    const source = normalizeSource(JSON.parse(stored));
+    return isDefaultSeed(source) ? null : source;
   } catch {
     return null;
   }
