@@ -8,10 +8,13 @@ import {
   FileJson,
   Image,
   Import,
+  Link,
   Newspaper,
   Plus,
   Smartphone,
+  Tablet,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -31,6 +34,10 @@ import {
 import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, ValidationIssue } from "./types";
 
 const storageKey = "alteditor.source.v1";
+const imgurClientIdKey = "alteditor.imgurClientId.v1";
+
+type ScreenshotDevice = "iphone" | "ipad";
+type ScreenshotObject = Extract<ScreenshotItem, { imageURL: string }>;
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -69,6 +76,55 @@ const formatBytes = (bytes: number): string => {
   const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   const value = bytes / 1024 ** index;
   return `${value.toFixed(index <= 1 ? 0 : 1)} ${units[index]}`;
+};
+
+const asScreenshotObject = (item: ScreenshotItem): ScreenshotObject => (typeof item === "string" ? { imageURL: item } : item);
+
+const getScreenshotLists = (screenshots: AltApp["screenshots"]): Record<ScreenshotDevice, ScreenshotObject[]> => {
+  if (Array.isArray(screenshots)) {
+    return {
+      iphone: screenshots.map(asScreenshotObject),
+      ipad: [],
+    };
+  }
+
+  return {
+    iphone: (screenshots?.iphone ?? []).map(asScreenshotObject),
+    ipad: (screenshots?.ipad ?? []).map(asScreenshotObject),
+  };
+};
+
+const getImageSize = (url: string): Promise<Pick<ScreenshotObject, "width" | "height">> =>
+  new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error("Could not read image size."));
+    image.src = url;
+  });
+
+const getFileImageSize = async (file: File): Promise<Pick<ScreenshotObject, "width" | "height">> => {
+  const objectURL = URL.createObjectURL(file);
+  try {
+    return await getImageSize(objectURL);
+  } finally {
+    URL.revokeObjectURL(objectURL);
+  }
+};
+
+const uploadToImgur = async (file: File, clientId: string): Promise<string> => {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const response = await fetch("https://api.imgur.com/3/image", {
+    method: "POST",
+    headers: {
+      Authorization: `Client-ID ${clientId}`,
+    },
+    body: formData,
+  });
+  const body = await response.json();
+  if (!response.ok || !body?.data?.link) throw new Error(body?.data?.error ?? "Imgur upload failed.");
+  return body.data.link;
 };
 
 const field = (label: string, value: string | undefined, onChange: (value: string) => void, props?: { placeholder?: string; textarea?: boolean; type?: string }) => (
@@ -210,21 +266,173 @@ function SourceEditor({ source, updateSource }: { source: AltSource; updateSourc
   );
 }
 
-function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: Partial<AltApp>) => void }) {
-  const screenshotList = Array.isArray(app.screenshots) ? app.screenshots : app.screenshots?.iphone ?? [];
-  const setScreenshots = (items: ScreenshotItem[]) => updateApp({ screenshots: items });
-  const values = screenshotList.map((item) => (typeof item === "string" ? item : item.imageURL)).join("\n");
+function ScreenshotDeviceSection({
+  device,
+  items,
+  addScreenshot,
+  updateScreenshot,
+  removeScreenshot,
+  imgurClientId,
+}: {
+  device: ScreenshotDevice;
+  items: ScreenshotObject[];
+  addScreenshot: (device: ScreenshotDevice, item: ScreenshotObject) => void;
+  updateScreenshot: (device: ScreenshotDevice, index: number, item: ScreenshotObject) => void;
+  removeScreenshot: (device: ScreenshotDevice, index: number) => void;
+  imgurClientId: string;
+}) {
+  const [url, setUrl] = useState("");
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const label = device === "iphone" ? "iPhone" : "iPad";
+  const Icon = device === "iphone" ? Smartphone : Tablet;
+
+  const addURL = async () => {
+    const imageURL = url.trim();
+    if (!imageURL) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      const size = await getImageSize(imageURL);
+      addScreenshot(device, { imageURL, ...size });
+      setStatus(`Added ${size.width}x${size.height}`);
+    } catch {
+      addScreenshot(device, { imageURL });
+      setStatus("Added URL without size");
+    } finally {
+      setUrl("");
+      setBusy(false);
+    }
+  };
+
+  const uploadFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!imgurClientId.trim()) {
+      setStatus("Enter an Imgur Client ID first");
+      return;
+    }
+
+    setBusy(true);
+    setStatus(`Uploading ${file.name}`);
+    try {
+      const [size, imageURL] = await Promise.all([getFileImageSize(file), uploadToImgur(file, imgurClientId.trim())]);
+      addScreenshot(device, { imageURL, ...size });
+      setStatus(`Uploaded ${size.width}x${size.height}`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <label className="field">
-      <span>Screenshots</span>
-      <textarea
-        value={values}
-        rows={4}
-        placeholder="One screenshot URL per line"
-        onChange={(event) => setScreenshots(event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))}
-      />
-    </label>
+    <div className="screenshot-device">
+      <div className="screenshot-device-header">
+        <div>
+          <h4>
+            <Icon size={16} /> {label}
+          </h4>
+          <span>{items.length} screenshots</span>
+        </div>
+        <div className="button-row">
+          <button className="secondary" disabled={busy} onClick={() => fileInput.current?.click()} type="button">
+            <Upload size={15} /> Upload
+          </button>
+          <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
+        </div>
+      </div>
+
+      <div className="screenshot-add-row">
+        <input value={url} placeholder={`${label} screenshot URL`} onChange={(event) => setUrl(event.target.value)} />
+        <button disabled={busy || !url.trim()} onClick={addURL} type="button">
+          <Link size={15} /> Add link
+        </button>
+      </div>
+      {status && <div className="screenshot-status">{status}</div>}
+
+      {items.length ? (
+        <div className="screenshot-grid">
+          {items.map((item, index) => (
+            <div className="screenshot-card" key={`${item.imageURL}-${index}`}>
+              <div className="screenshot-frame">
+                <img src={item.imageURL} alt={`${label} screenshot ${index + 1}`} />
+              </div>
+              <div className="screenshot-fields">
+                {field("Image URL", item.imageURL, (imageURL) => updateScreenshot(device, index, { ...item, imageURL }))}
+                <div className="grid two">
+                  {numberField("Width", Number(item.width ?? 0), (width) => updateScreenshot(device, index, { ...item, width }))}
+                  {numberField("Height", Number(item.height ?? 0), (height) => updateScreenshot(device, index, { ...item, height }))}
+                </div>
+                <button
+                  className="secondary small-button"
+                  onClick={() => void getImageSize(item.imageURL).then((size) => updateScreenshot(device, index, { ...item, ...size })).catch(() => setStatus("Could not read image size"))}
+                  type="button"
+                >
+                  Read size
+                </button>
+                <button className="icon-button danger" onClick={() => removeScreenshot(device, index)} type="button" aria-label={`Remove ${label} screenshot`}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="empty slim">No {label} screenshots</div>
+      )}
+    </div>
+  );
+}
+
+function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: Partial<AltApp>) => void }) {
+  const [imgurClientId, setImgurClientId] = useState(() => localStorage.getItem(imgurClientIdKey) ?? "");
+  const lists = getScreenshotLists(app.screenshots);
+
+  useEffect(() => {
+    localStorage.setItem(imgurClientIdKey, imgurClientId);
+  }, [imgurClientId]);
+
+  const setDeviceItems = (device: ScreenshotDevice, items: ScreenshotObject[]) => {
+    const current = Array.isArray(app.screenshots) ? {} : app.screenshots ?? {};
+    updateApp({
+      screenshots: {
+        ...current,
+        iphone: device === "iphone" ? items : lists.iphone,
+        ipad: device === "ipad" ? items : lists.ipad,
+      },
+    });
+  };
+
+  return (
+    <section className="screenshot-manager">
+      <div className="subsection-title">
+        <h3>Screenshots</h3>
+      </div>
+      <label className="field">
+        <span>Imgur Client ID</span>
+        <input
+          value={imgurClientId}
+          placeholder="Required for automatic file uploads"
+          onChange={(event) => setImgurClientId(event.target.value)}
+        />
+      </label>
+      <div className="screenshot-devices">
+        {(["iphone", "ipad"] as ScreenshotDevice[]).map((device) => (
+          <ScreenshotDeviceSection
+            key={device}
+            device={device}
+            items={lists[device]}
+            imgurClientId={imgurClientId}
+            addScreenshot={(target, item) => setDeviceItems(target, [...lists[target], item])}
+            updateScreenshot={(target, index, item) => setDeviceItems(target, lists[target].map((current, itemIndex) => (itemIndex === index ? item : current)))}
+            removeScreenshot={(target, index) => setDeviceItems(target, lists[target].filter((_, itemIndex) => itemIndex !== index))}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
