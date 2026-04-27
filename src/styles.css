@@ -54,6 +54,11 @@ button.secondary:hover {
   background: #dce2ec;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
@@ -541,6 +546,93 @@ details > :not(summary) {
 
 .modal pre {
   max-height: calc(100vh - 180px);
+}
+
+.scan-modal {
+  max-width: 620px;
+}
+
+.block-header {
+  color: #66758d;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.scan-list {
+  background: #f8fafc;
+  border: 1px solid #dce2ec;
+  border-radius: 8px;
+  display: grid;
+  overflow: hidden;
+}
+
+.scan-list button {
+  border-radius: 0;
+  margin: 12px;
+}
+
+.scan-check-row,
+.scan-info-row {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e5eaf2;
+  display: flex;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 14px;
+}
+
+.scan-check-row input {
+  flex: 0 0 auto;
+  height: 18px;
+  min-height: 18px;
+  width: 18px;
+}
+
+.scan-check-row span {
+  color: #172033;
+  display: grid;
+  font-weight: 750;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scan-check-row small {
+  color: #66758d;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.scan-info-row {
+  justify-content: space-between;
+}
+
+.scan-info-row span {
+  color: #44536a;
+}
+
+.scan-info-row strong {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.badge {
+  background: #16a34a;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 3px 7px;
+}
+
+.badge.muted {
+  background: #94a3b8;
 }
 
 @media (max-width: 980px) {

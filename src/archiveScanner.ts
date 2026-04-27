@@ -10,6 +10,9 @@ interface InfoPlist {
   CFBundleIdentifier?: string;
   CFBundleShortVersionString?: string;
   CFBundleVersion?: string;
+  ALTMarketplaceID?: string;
+  MarketplaceID?: string;
+  marketplaceID?: string;
   LSMinimumSystemVersion?: string;
   MinimumOSVersion?: string;
   NSPhotoLibraryUsageDescription?: string;
@@ -60,6 +63,7 @@ export const scanArchiveForApp = async (file: File): Promise<AltApp> => {
     ...makeApp(),
     name: String(info.CFBundleDisplayName ?? info.CFBundleName ?? "Imported App"),
     bundleIdentifier: String(info.CFBundleIdentifier ?? ""),
+    marketplaceID: String(info.ALTMarketplaceID ?? info.MarketplaceID ?? info.marketplaceID ?? ""),
     developerName: "",
     localizedDescription: "",
     versions: [version],

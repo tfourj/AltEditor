@@ -63,6 +63,14 @@ const downloadText = (filename: string, text: string) => {
 
 const toFileName = (name: string) => `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "altsource"}.json`;
 
+const formatBytes = (bytes: number): string => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** index;
+  return `${value.toFixed(index <= 1 ? 0 : 1)} ${units[index]}`;
+};
+
 const field = (label: string, value: string | undefined, onChange: (value: string) => void, props?: { placeholder?: string; textarea?: boolean; type?: string }) => (
   <label className="field">
     <span>{label}</span>
@@ -543,10 +551,111 @@ function CodeModal({ code, close }: { code: string; close: () => void }) {
   );
 }
 
+type ScannedFieldKey = "name" | "bundleIdentifier" | "marketplaceID";
+
+function ScannedArchiveModal({
+  app,
+  targetApp,
+  close,
+  importToEditor,
+}: {
+  app: AltApp;
+  targetApp?: AltApp;
+  close: () => void;
+  importToEditor: (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean) => void;
+}) {
+  const [fields, setFields] = useState<Record<ScannedFieldKey, boolean>>({
+    name: Boolean(app.name),
+    bundleIdentifier: Boolean(app.bundleIdentifier),
+    marketplaceID: Boolean(app.marketplaceID),
+  });
+  const [addVersion, setAddVersion] = useState(true);
+  const version = app.versions[0];
+  const versionExists = Boolean(
+    targetApp?.versions.some(
+      (item) =>
+        item.version === version.version &&
+        item.buildVersion === version.buildVersion,
+    ),
+  );
+  const canImportFields = Object.values(fields).some(Boolean);
+  const canAddVersion = addVersion && !versionExists;
+
+  const toggleField = (key: ScannedFieldKey) => {
+    setFields((current) => ({ ...current, [key]: !current[key] }));
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="modal scan-modal">
+        <div className="modal-header">
+          <div>
+            <p className="eyebrow">Scanned IPA/ADP</p>
+            <h2>Select data to import</h2>
+          </div>
+          <button className="secondary" onClick={close} type="button">Close</button>
+        </div>
+
+        <p className="block-header">Select which data from the ipa file you want to import into the editor</p>
+        <div className="scan-list">
+          {[
+            ["name", "Name", app.name],
+            ["bundleIdentifier", "Bundle ID", app.bundleIdentifier],
+            ["marketplaceID", "Marketplace ID", app.marketplaceID],
+          ].map(([key, label, value]) => (
+            <label className="scan-check-row" key={key}>
+              <input
+                checked={fields[key as ScannedFieldKey]}
+                disabled={!value}
+                type="checkbox"
+                onChange={() => toggleField(key as ScannedFieldKey)}
+              />
+              <span>
+                <small>{label}</small>
+                {value || "Not found"}
+              </span>
+            </label>
+          ))}
+          <button
+            disabled={!canImportFields && !canAddVersion}
+            onClick={() => importToEditor(fields, canAddVersion)}
+            type="button"
+          >
+            Import to editor
+          </button>
+        </div>
+
+        <div className="scan-list divided">
+          <div className="scan-info-row">
+            <span>Version</span>
+            <strong>
+              {version.version || "Not found"}
+              {versionExists ? <em className="badge muted">Exists</em> : <em className="badge">Added</em>}
+            </strong>
+          </div>
+          <div className="scan-info-row">
+            <span>Size</span>
+            <strong>{formatBytes(version.size)}</strong>
+          </div>
+          <button
+            className="secondary"
+            disabled={versionExists}
+            onClick={() => importToEditor({ name: false, bundleIdentifier: false, marketplaceID: false }, true)}
+            type="button"
+          >
+            Add this version
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [source, setSource] = useState<AltSource | null>(readStoredSource);
   const [activeTab, setActiveTab] = useState<"source" | "apps" | "news">("source");
   const [showCode, setShowCode] = useState(false);
+  const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
   const [notice, setNotice] = useState("");
   const importInput = useRef<HTMLInputElement>(null);
 
@@ -574,12 +683,57 @@ export default function App() {
   const scanArchive = async (file: File) => {
     try {
       const app = await scanArchiveForApp(file);
-      setSource((current) => (current ? { ...current, apps: [...current.apps, app] } : current));
+      setScannedApp(app);
       setActiveTab("apps");
       setNotice(`Scanned ${file.name}`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Archive scan failed.");
     }
+  };
+
+  const importScannedApp = (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean) => {
+    if (!scannedApp) return;
+    setSource((current) => {
+      if (!current) return current;
+      const targetIndex = current.apps.findIndex((app) => app.bundleIdentifier === scannedApp.bundleIdentifier);
+      const patch: Partial<AltApp> = {};
+      if (fields.name) patch.name = scannedApp.name;
+      if (fields.bundleIdentifier) patch.bundleIdentifier = scannedApp.bundleIdentifier;
+      if (fields.marketplaceID) patch.marketplaceID = scannedApp.marketplaceID;
+
+      if (targetIndex === -1) {
+        return {
+          ...current,
+          apps: [
+            ...current.apps,
+            {
+              ...makeApp(),
+              ...patch,
+              versions: addVersion ? scannedApp.versions : [],
+              appPermissions: scannedApp.appPermissions,
+            },
+          ],
+        };
+      }
+
+      return {
+        ...current,
+        apps: current.apps.map((app, index) => {
+          if (index !== targetIndex) return app;
+          const version = scannedApp.versions[0];
+          const hasVersion = app.versions.some((item) => item.version === version.version && item.buildVersion === version.buildVersion);
+          return {
+            ...app,
+            ...patch,
+            versions: addVersion && !hasVersion ? [...app.versions, version] : app.versions,
+            appPermissions: scannedApp.appPermissions,
+          };
+        }),
+      };
+    });
+    setScannedApp(null);
+    setActiveTab("apps");
+    setNotice("Imported scanned data");
   };
 
   const createExample = () => {
@@ -661,6 +815,14 @@ export default function App() {
       </main>
 
       {showCode && <CodeModal code={code} close={() => setShowCode(false)} />}
+      {scannedApp && (
+        <ScannedArchiveModal
+          app={scannedApp}
+          targetApp={source.apps.find((app) => app.bundleIdentifier === scannedApp.bundleIdentifier)}
+          close={() => setScannedApp(null)}
+          importToEditor={importScannedApp}
+        />
+      )}
     </div>
   );
 }
