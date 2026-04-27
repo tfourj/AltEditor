@@ -1,4 +1,4 @@
-import { Code2, Download, FileJson, Import, Newspaper, Plus, Smartphone } from "lucide-react";
+import { Code2, Download, ExternalLink, FileJson, Import, Newspaper, Plus, Smartphone } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { scanArchiveForApp } from "./archiveScanner";
@@ -150,6 +150,12 @@ export default function App() {
 
         <ValidationPanel issues={issues} />
         {notice && <div className="notice">{notice}</div>}
+        <div className="sidebar-footer">
+          <button onClick={() => window.open("https://github.com/tfourj/AltEditor", "_blank")} type="button" className="side-actions-btn">
+            <ExternalLink size={17} /> GitHub Repo
+          </button>
+          <span>created by TfourJ</span>
+        </div>
       </aside>
 
       <main className="workspace">

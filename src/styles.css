@@ -195,6 +195,29 @@ summary span {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.side-actions-btn {
+  background: rgba(255, 255, 255, 0.08);
+  justify-content: flex-start;
+}
+
+.side-actions-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-footer {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.sidebar-footer span {
+  color: #aeb9ca;
+  font-size: 12px;
+}
+
 .workspace {
   align-content: start;
   display: grid;
