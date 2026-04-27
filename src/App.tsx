@@ -583,11 +583,6 @@ export default function App() {
           </div>
         </div>
 
-        <div className="repo-icon-panel">
-          <ImagePreview url={source.iconURL} label="Repository icon from icon URL" />
-          <span>Repository icon</span>
-        </div>
-
         <div className="source-card">
           <ImagePreview url={source.iconURL} label="Current source icon" />
           <div>

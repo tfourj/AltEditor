@@ -177,24 +177,6 @@ summary span {
   padding: 12px;
 }
 
-.repo-icon-panel {
-  align-items: center;
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-}
-
-.repo-icon-panel .image-preview {
-  height: 86px;
-  width: 86px;
-}
-
-.repo-icon-panel span {
-  color: #aeb9ca;
-  font-size: 13px;
-  font-weight: 750;
-}
-
 .side-actions {
   display: grid;
   gap: 8px;
