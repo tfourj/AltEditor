@@ -48,7 +48,7 @@ const asStringArray = (value: unknown): string[] => (Array.isArray(value) ? valu
 export const makeVersion = (): AltVersion => ({
   version: "",
   buildVersion: "",
-  date: new Date().toISOString().slice(0, 10),
+  date: new Date().toISOString().slice(0, 16),
   localizedDescription: "",
   downloadURL: "",
   size: 0,

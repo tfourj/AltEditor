@@ -1,3 +1,36 @@
+function normalizeDateTime(value: string | undefined): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return value.slice(0, 16);
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10) + "T00:00";
+  return value;
+}
+
+export function DateTimeField({
+  label,
+  value,
+  onChange,
+  required,
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (value: string) => void;
+  required?: boolean;
+}) {
+  return (
+    <label className="field">
+      <span>
+        {label}
+        {required && <span className="required-star">*</span>}
+      </span>
+      <input
+        type="datetime-local"
+        value={normalizeDateTime(value)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
 export function Field({
   label,
   value,

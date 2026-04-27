@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { compactStringList, samePrivacyEntries, sameStringArray, toPrivacyRecord } from "../lib/draftLists";
 import { categories, makeApp, makePermissions, makeVersion } from "../sourceModel";
 import type { AltApp, AltSource, AltVersion } from "../types";
-import { Field, NumberField } from "./Fields";
+import { DateTimeField, Field, NumberField } from "./Fields";
 import { ImagePreview } from "./ImagePreview";
 import { ScreenshotEditor } from "./ScreenshotEditor";
 
@@ -33,7 +33,7 @@ function VersionEditor({
       <div className="grid three">
         <Field label="Version" value={version.version} onChange={(value) => updateVersion({ version: value })} required />
         <Field label="Build" value={version.buildVersion} onChange={(buildVersion) => updateVersion({ buildVersion })} required />
-        <Field label="Date" value={version.date} onChange={(date) => updateVersion({ date })} required />
+        <DateTimeField label="Date" value={version.date} onChange={(date) => updateVersion({ date })} required />
       </div>
       <Field label="Download URL" value={version.downloadURL} onChange={(downloadURL) => updateVersion({ downloadURL })} required />
       <div className="grid three">
