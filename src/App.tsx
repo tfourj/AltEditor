@@ -87,7 +87,7 @@ export default function App() {
           return {
             ...app,
             ...patch,
-            versions: addVersion && !hasVersion ? [...app.versions, version] : app.versions,
+            versions: addVersion && !hasVersion ? [version, ...app.versions] : app.versions,
             appPermissions: scannedApp.appPermissions,
           };
         }),

@@ -12,15 +12,20 @@ function VersionEditor({
   version,
   updateVersion,
   removeVersion,
+  isLatest,
 }: {
   version: AltVersion;
   updateVersion: (patch: Partial<AltVersion>) => void;
   removeVersion: () => void;
+  isLatest?: boolean;
 }) {
   return (
     <div className="nested">
       <div className="nested-header">
-        <strong>{version.version || "New version"}</strong>
+        <strong>
+          {version.version || "New version"}
+          {isLatest && <em className="badge badge-latest">Latest</em>}
+        </strong>
         <button className="icon-button danger" onClick={removeVersion} type="button" aria-label="Remove version">
           <Trash2 size={16} />
         </button>
@@ -181,6 +186,14 @@ function AppEditor({
   updateApp: (patch: Partial<AltApp>) => void;
   removeApp: () => void;
 }) {
+  const [selectedVersionIndex, setSelectedVersionIndex] = useState(0);
+  useEffect(() => {
+    if (app.versions.length === 0) return;
+    setSelectedVersionIndex((prev) => Math.min(prev, app.versions.length - 1));
+  }, [app.versions.length]);
+
+  const safeVersionIndex = Math.min(selectedVersionIndex, Math.max(0, app.versions.length - 1));
+
   return (
     <details className="panel item-panel" open={index === 0}>
       <summary>
@@ -227,22 +240,48 @@ function AppEditor({
 
       <div className="subsection-title">
         <h3>Versions</h3>
-        <button className="small-button" onClick={() => updateApp({ versions: [...app.versions, makeVersion()] })} type="button">
+        <button
+          className="small-button"
+          onClick={() => {
+            updateApp({ versions: [makeVersion(), ...app.versions] });
+            setSelectedVersionIndex(0);
+          }}
+          type="button"
+        >
           <Plus size={15} /> Add version
         </button>
       </div>
-      {app.versions.map((version, versionIndex) => (
-        <VersionEditor
-          key={versionIndex}
-          version={version}
-          updateVersion={(patch) =>
-            updateApp({
-              versions: app.versions.map((item, itemIndex) => (itemIndex === versionIndex ? { ...item, ...patch } : item)),
-            })
-          }
-          removeVersion={() => updateApp({ versions: app.versions.filter((_, itemIndex) => itemIndex !== versionIndex) })}
-        />
-      ))}
+      {app.versions.length > 0 && (
+        <>
+          <label className="field">
+            <span>Select version</span>
+            <select value={safeVersionIndex} onChange={(e) => setSelectedVersionIndex(Number(e.target.value))}>
+              {app.versions.map((v, i) => (
+                <option key={i} value={i}>
+                  {v.version || "New version"}
+                  {v.buildVersion ? ` (${v.buildVersion})` : ""}
+                  {i === 0 ? " — Latest" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <VersionEditor
+            version={app.versions[safeVersionIndex]}
+            isLatest={safeVersionIndex === 0}
+            updateVersion={(patch) =>
+              updateApp({
+                versions: app.versions.map((item, itemIndex) =>
+                  itemIndex === safeVersionIndex ? { ...item, ...patch } : item,
+                ),
+              })
+            }
+            removeVersion={() => {
+              updateApp({ versions: app.versions.filter((_, itemIndex) => itemIndex !== safeVersionIndex) });
+              setSelectedVersionIndex((prev) => Math.max(0, prev - 1));
+            }}
+          />
+        </>
+      )}
 
       <PermissionEditor app={app} updateApp={updateApp} />
 

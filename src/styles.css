@@ -804,6 +804,11 @@ details > :not(summary) {
   background: #94a3b8;
 }
 
+.badge-latest {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
