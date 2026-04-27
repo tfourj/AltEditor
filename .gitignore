@@ -4,3 +4,4 @@ dist/
 *.local
 *.tsbuildinfo
 /ins
+.env
