@@ -268,5 +268,17 @@ export const validateSource = (source: AltSource): ValidationIssue[] => {
   return issues;
 };
 
-export const compactForExport = (source: AltSource): AltSource => JSON.parse(JSON.stringify(source));
+const stripEmptyStrings = <T,>(value: T): T => {
+  if (Array.isArray(value)) return value.map(stripEmptyStrings) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, v]) => v !== "")
+        .map(([k, v]) => [k, stripEmptyStrings(v)]),
+    ) as T;
+  }
+  return value;
+};
+
+export const compactForExport = (source: AltSource): AltSource => stripEmptyStrings(JSON.parse(JSON.stringify(source)));
 
