@@ -227,6 +227,22 @@ summary span {
   padding: 12px;
 }
 
+.source-selector-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.source-selector-row .image-preview {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.source-selector-row .source-switch-dropdown {
+  flex: 1;
+  min-width: 0;
+}
+
 .source-switch-dropdown {
   appearance: none;
   background: rgba(255, 255, 255, 0.1);

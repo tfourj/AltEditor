@@ -178,17 +178,20 @@ export default function App() {
         </div>
 
         <div className="source-selector">
-          <select
-            className="source-switch-dropdown"
-            value={store.activeId ?? ""}
-            onChange={(e) => selectSource(e.target.value)}
-          >
-            {store.sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.source.name || "Untitled Source"}
-              </option>
-            ))}
-          </select>
+          <div className="source-selector-row">
+            <ImagePreview url={source.iconURL} label="Current source icon" />
+            <select
+              className="source-switch-dropdown"
+              value={store.activeId ?? ""}
+              onChange={(e) => selectSource(e.target.value)}
+            >
+              {store.sources.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.source.name || "Untitled Source"}
+                </option>
+              ))}
+            </select>
+          </div>
           <span className="source-selector-meta">
             {source.subtitle || `${source.apps.length} apps, ${source.news.length} news items`}
           </span>
