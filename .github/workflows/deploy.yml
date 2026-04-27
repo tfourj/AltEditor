@@ -33,14 +33,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+        id: pages
+
       - name: Determine base path
         id: base
         run: |
-          if [[ "${{ github.event.repository.name }}" =~ \.github\.io$ ]]; then
-            echo "base_path=/" >> "$GITHUB_OUTPUT"
-          else
-            echo "base_path=/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
-          fi
+          url="${{ steps.pages.outputs.base_url }}"
+          path=$(echo "$url" | sed 's|^https\?://[^/]*||')
+          if [ -z "$path" ]; then path="/"; fi
+          if [[ ! "$path" =~ /$ ]]; then path="${path}/"; fi
+          echo "base_path=$path" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: |
@@ -49,9 +53,6 @@ jobs:
         env:
           VITE_ENABLE_IMAGE_UPLOAD: ${{ vars.VITE_ENABLE_IMAGE_UPLOAD || 'false' }}
           VITE_IMGUR_CLIENT_ID: ${{ secrets.VITE_IMGUR_CLIENT_ID || '' }}
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
