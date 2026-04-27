@@ -436,6 +436,25 @@ details > :not(summary) {
   padding: 14px;
 }
 
+.app-reference-panel {
+  border-top: 1px solid #dce2ec;
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.app-reference-list {
+  display: grid;
+  gap: 10px;
+}
+
+.app-reference-row {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .permission-editor {
   display: grid;
   gap: 14px;
@@ -839,6 +858,7 @@ details > :not(summary) {
   }
 
   .permission-header,
+  .app-reference-row,
   .permission-row {
     align-items: stretch;
   }
@@ -847,6 +867,7 @@ details > :not(summary) {
     flex-direction: column;
   }
 
+  .app-reference-row,
   .entitlement-row,
   .privacy-row {
     grid-template-columns: 1fr;

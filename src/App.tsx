@@ -155,7 +155,41 @@ const numberField = (label: string, value: number, onChange: (value: number) => 
   </label>
 );
 
-const compactEntitlements = (items: string[]): string[] => items.map((item) => item.trim()).filter(Boolean);
+const appLabel = (app: AltApp): string => [app.name || "Untitled app", app.bundleIdentifier].filter(Boolean).join(" - ");
+
+function AppBundleSelect({
+  apps,
+  label,
+  value,
+  onChange,
+  allowBlank = true,
+}: {
+  apps: AltApp[];
+  label: string;
+  value: string | undefined;
+  onChange: (value: string) => void;
+  allowBlank?: boolean;
+}) {
+  const appOptions = apps.filter((app) => app.bundleIdentifier.trim());
+  const valueIsKnown = !value || appOptions.some((app) => app.bundleIdentifier === value);
+
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <select value={value ?? ""} onChange={(event) => onChange(event.target.value)} disabled={!appOptions.length}>
+        {allowBlank && <option value="">No app selected</option>}
+        {!valueIsKnown && <option value={value}>{value}</option>}
+        {appOptions.map((app) => (
+          <option key={app.bundleIdentifier} value={app.bundleIdentifier}>
+            {appLabel(app)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+const compactStringList = (items: string[]): string[] => items.map((item) => item.trim()).filter(Boolean);
 
 const toPrivacyRecord = (entries: Array<[string, string]>): Record<string, string> =>
   Object.fromEntries(entries.map(([key, value]) => [key.trim(), value.trim()]).filter(([key, value]) => key && value));
@@ -242,8 +276,54 @@ function HomeScreen({
   );
 }
 
+function FeaturedAppsEditor({ source, updateSource }: { source: AltSource; updateSource: (patch: Partial<AltSource>) => void }) {
+  const [featuredDrafts, setFeaturedDrafts] = useState<string[]>(source.featuredApps.length ? source.featuredApps : [""]);
+
+  useEffect(() => {
+    if (!sameStringArray(compactStringList(featuredDrafts), source.featuredApps)) {
+      setFeaturedDrafts(source.featuredApps.length ? source.featuredApps : [""]);
+    }
+  }, [featuredDrafts, source.featuredApps]);
+
+  const updateFeaturedApps = (apps: string[]) => {
+    setFeaturedDrafts(apps.length ? apps : [""]);
+    updateSource({ featuredApps: apps.filter(Boolean) });
+  };
+
+  return (
+    <div className="app-reference-panel">
+      <div className="permission-header">
+        <h3>Featured apps</h3>
+        <button className="small-button" onClick={() => setFeaturedDrafts([...featuredDrafts, ""])} type="button">
+          <Plus size={15} /> Add featured app
+        </button>
+      </div>
+      <div className="app-reference-list">
+        {featuredDrafts.map((bundleIdentifier, index) => (
+          <div className="app-reference-row" key={`${bundleIdentifier}-${index}`}>
+            <AppBundleSelect
+              apps={source.apps}
+              label="App"
+              value={bundleIdentifier}
+              onChange={(value) => updateFeaturedApps(featuredDrafts.map((item, itemIndex) => (itemIndex === index ? value : item)))}
+            />
+            <button
+              className="icon-button danger"
+              onClick={() => updateFeaturedApps(featuredDrafts.filter((_, itemIndex) => itemIndex !== index))}
+              type="button"
+              aria-label="Remove featured app"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+      {!source.apps.some((app) => app.bundleIdentifier.trim()) && <div className="empty slim">Add an app with a bundle identifier first</div>}
+    </div>
+  );
+}
+
 function SourceEditor({ source, updateSource }: { source: AltSource; updateSource: (patch: Partial<AltSource>) => void }) {
-  const featuredText = source.featuredApps.join("\n");
   return (
     <section className="panel">
       <div className="section-header">
@@ -266,23 +346,7 @@ function SourceEditor({ source, updateSource }: { source: AltSource; updateSourc
         {field("Fediverse username", source.fediUsername, (fediUsername) => updateSource({ fediUsername }))}
         {field("Tint color", source.tintColor, (tintColor) => updateSource({ tintColor }), { type: "text", placeholder: "#6156e2" })}
       </div>
-      <label className="field">
-        <span>Featured apps</span>
-        <textarea
-          value={featuredText}
-          placeholder="One bundle identifier per line"
-          rows={3}
-          onChange={(event) =>
-            updateSource({
-              featuredApps: event.target.value
-                .split("\n")
-                .map((item) => item.trim())
-                .filter(Boolean),
-            })
-          }
-        />
-      </label>
-      {!source.featuredApps.length && <div className="empty slim">No featured apps</div>}
+      <FeaturedAppsEditor source={source} updateSource={updateSource} />
     </section>
   );
 }
@@ -508,7 +572,7 @@ function PermissionEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
   const [privacyDrafts, setPrivacyDrafts] = useState<Array<[string, string]>>(appPrivacyEntries.length ? appPrivacyEntries : [["", ""]]);
 
   useEffect(() => {
-    if (!sameStringArray(compactEntitlements(entitlementDrafts), appEntitlements)) {
+    if (!sameStringArray(compactStringList(entitlementDrafts), appEntitlements)) {
       setEntitlementDrafts(appEntitlements.length ? appEntitlements : [""]);
     }
   }, [appEntitlements, entitlementDrafts]);
@@ -524,7 +588,7 @@ function PermissionEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
     updateApp({
       appPermissions: {
         ...permissions,
-        entitlements: compactEntitlements(items),
+        entitlements: compactStringList(items),
       },
     });
   };
@@ -823,7 +887,7 @@ function NewsEditor({ source, updateSource }: { source: AltSource; updateSource:
             {field("Tint color", item.tintColor, (tintColor) => updateNews(index, { tintColor }))}
             {field("Image URL", item.imageURL, (imageURL) => updateNews(index, { imageURL }))}
             {field("URL", item.url, (url) => updateNews(index, { url }))}
-            {field("App bundle ID", item.appID, (appID) => updateNews(index, { appID }))}
+            <AppBundleSelect apps={source.apps} label="App" value={item.appID} onChange={(appID) => updateNews(index, { appID })} />
           </div>
           <label className="toggle inline-toggle">
             <input type="checkbox" checked={Boolean(item.notify)} onChange={(event) => updateNews(index, { notify: event.target.checked })} />
