@@ -505,7 +505,6 @@ details > :not(summary) {
   color: #d7deea;
 }
 
-.code-panel pre,
 .modal pre {
   background: #0f172a;
   border-radius: 8px;

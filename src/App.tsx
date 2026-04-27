@@ -2,6 +2,7 @@ import {
   AlertCircle,
   Check,
   Code2,
+  Copy,
   Download,
   FileArchive,
   FileJson,
@@ -502,6 +503,25 @@ function NewsEditor({ source, updateSource }: { source: AltSource; updateSource:
 }
 
 function CodeModal({ code, close }: { code: string; close: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.append(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  };
+
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
       <div className="modal">
@@ -510,7 +530,12 @@ function CodeModal({ code, close }: { code: string; close: () => void }) {
             <p className="eyebrow">Source code</p>
             <h2>Formatted JSON</h2>
           </div>
-          <button className="secondary" onClick={close} type="button">Close</button>
+          <div className="button-row">
+            <button className="secondary" onClick={copyCode} type="button">
+              <Copy size={16} /> {copied ? "Copied" : "Copy"}
+            </button>
+            <button className="secondary" onClick={close} type="button">Close</button>
+          </div>
         </div>
         <pre>{code}</pre>
       </div>
@@ -633,19 +658,6 @@ export default function App() {
         {activeTab === "source" && <SourceEditor source={source} updateSource={updateSource} />}
         {activeTab === "apps" && <AppsEditor source={source} updateSource={updateSource} scanArchive={scanArchive} />}
         {activeTab === "news" && <NewsEditor source={source} updateSource={updateSource} />}
-
-        <section className="panel code-panel">
-          <div className="section-header">
-            <div>
-              <p className="eyebrow">Code</p>
-              <h2>Live source JSON</h2>
-            </div>
-            <button className="secondary" onClick={() => setShowCode(true)} type="button">
-              <Code2 size={16} /> View full code
-            </button>
-          </div>
-          <pre>{code}</pre>
-        </section>
       </main>
 
       {showCode && <CodeModal code={code} close={() => setShowCode(false)} />}
