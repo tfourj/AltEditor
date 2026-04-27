@@ -37,6 +37,8 @@ import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, Valida
 
 const storageKey = "alteditor.source.v1";
 const imageUploadEnabled = import.meta.env.VITE_ENABLE_IMAGE_UPLOAD === "true";
+const imgurClientId = import.meta.env.VITE_IMGUR_CLIENT_ID;
+const imgurUploadUrl = "https://imgur.com/upload";
 
 type ScreenshotDevice = "iphone" | "ipad";
 type ScreenshotObject = Extract<ScreenshotItem, { imageURL: string }>;
@@ -118,22 +120,30 @@ const asFiniteNumber = (value: unknown): number | undefined => {
   return Number.isFinite(number) ? number : undefined;
 };
 
-const uploadToFreeimageHost = async (file: File): Promise<ScreenshotObject> => {
-  const formData = new FormData();
-  formData.append("source", file);
+const uploadToImgur = async (file: File): Promise<ScreenshotObject> => {
+  if (!imgurClientId) throw new Error("Imgur client ID is not configured.");
+  const uploadBody = new FormData();
+  uploadBody.append("image", file);
+  uploadBody.append("type", "file");
+  uploadBody.append("title", file.name);
+  uploadBody.append("description", "Uploaded from AltEditor");
 
-  const response = await fetch("/api/freeimage-upload", {
+  const response = await fetch("https://api.imgur.com/3/image", {
     method: "POST",
-    body: formData,
+    headers: {
+      Authorization: `Client-ID ${imgurClientId}`,
+    },
+    body: uploadBody,
   });
-  const body = await response.json();
-  if (!response.ok || body?.status_code !== 200 || !body?.image?.url) {
-    throw new Error(body?.error?.message ?? body?.status_txt ?? "Image upload failed.");
+  const responseBody = await response.json();
+  const imageURL = responseBody?.data?.link;
+  if (!response.ok || !responseBody?.success || !imageURL) {
+    throw new Error(responseBody?.data?.error ?? "Image upload failed.");
   }
   return {
-    imageURL: body.image.url,
-    width: asFiniteNumber(body.image.width),
-    height: asFiniteNumber(body.image.height),
+    imageURL,
+    width: asFiniteNumber(responseBody?.data?.width),
+    height: asFiniteNumber(responseBody?.data?.height),
   };
 };
 
@@ -374,6 +384,7 @@ function ScreenshotDeviceSection({
   const fileInput = useRef<HTMLInputElement>(null);
   const label = device === "iphone" ? "iPhone" : "iPad";
   const Icon = device === "iphone" ? Smartphone : Tablet;
+  const canUploadToImgur = imageUploadEnabled && Boolean(imgurClientId);
 
   const addURL = async () => {
     const imageURL = url.trim();
@@ -397,7 +408,7 @@ function ScreenshotDeviceSection({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (!imageUploadEnabled) {
+    if (!canUploadToImgur) {
       setStatus("Image uploads are disabled");
       return;
     }
@@ -405,7 +416,7 @@ function ScreenshotDeviceSection({
     setBusy(true);
     setStatus(`Uploading ${file.name}`);
     try {
-      const [localSize, uploaded] = await Promise.all([getFileImageSize(file), uploadToFreeimageHost(file)]);
+      const [localSize, uploaded] = await Promise.all([getFileImageSize(file), uploadToImgur(file)]);
       const width = uploaded.width ?? localSize.width;
       const height = uploaded.height ?? localSize.height;
       addScreenshot(device, { ...uploaded, width, height });
@@ -426,14 +437,18 @@ function ScreenshotDeviceSection({
           </h4>
           <span>{items.length} screenshots</span>
         </div>
-        {imageUploadEnabled && (
-          <div className="button-row">
+        <div className="button-row">
+          {canUploadToImgur ? (
             <button className="secondary" disabled={busy} onClick={() => fileInput.current?.click()} type="button">
               <Upload size={15} /> Upload
             </button>
-            <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
-          </div>
-        )}
+          ) : (
+            <button className="secondary" onClick={() => window.open(imgurUploadUrl, "_blank", "noopener,noreferrer")} type="button">
+              <Link size={15} /> Open Imgur
+            </button>
+          )}
+          <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
+        </div>
       </div>
 
       <div className="screenshot-add-row">
