@@ -65,7 +65,7 @@ export function SourceEditor({ source, updateSource }: { source: AltSource; upda
         <ImagePreview url={source.iconURL} label="Source icon" />
       </div>
       <div className="grid two">
-        <Field label="Name" value={source.name} onChange={(name) => updateSource({ name })} />
+        <Field label="Name" value={source.name} onChange={(name) => updateSource({ name })} required />
         <Field label="Subtitle" value={source.subtitle} onChange={(subtitle) => updateSource({ subtitle })} />
       </div>
       <Field label="Description" value={source.description} onChange={(description) => updateSource({ description })} textarea />

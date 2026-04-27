@@ -452,6 +452,11 @@ summary,
   min-width: 0;
 }
 
+.required-star {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
 .field span,
 .toggle {
   color: #44536a;

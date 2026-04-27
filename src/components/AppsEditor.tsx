@@ -31,11 +31,11 @@ function VersionEditor({
         </button>
       </div>
       <div className="grid three">
-        <Field label="Version" value={version.version} onChange={(value) => updateVersion({ version: value })} />
-        <Field label="Build" value={version.buildVersion} onChange={(buildVersion) => updateVersion({ buildVersion })} />
-        <Field label="Date" value={version.date} onChange={(date) => updateVersion({ date })} />
+        <Field label="Version" value={version.version} onChange={(value) => updateVersion({ version: value })} required />
+        <Field label="Build" value={version.buildVersion} onChange={(buildVersion) => updateVersion({ buildVersion })} required />
+        <Field label="Date" value={version.date} onChange={(date) => updateVersion({ date })} required />
       </div>
-      <Field label="Download URL" value={version.downloadURL} onChange={(downloadURL) => updateVersion({ downloadURL })} />
+      <Field label="Download URL" value={version.downloadURL} onChange={(downloadURL) => updateVersion({ downloadURL })} required />
       <div className="grid three">
         <NumberField label="Size" value={version.size} onChange={(size) => updateVersion({ size })} />
         <Field label="Min iOS" value={version.minOSVersion} onChange={(minOSVersion) => updateVersion({ minOSVersion })} />
@@ -217,12 +217,12 @@ function AppEditor({
         </button>
       </summary>
       <div className="grid two">
-        <Field label="Name" value={app.name} onChange={(name) => updateApp({ name })} />
-        <Field label="Bundle identifier" value={app.bundleIdentifier} onChange={(bundleIdentifier) => updateApp({ bundleIdentifier })} />
+        <Field label="Name" value={app.name} onChange={(name) => updateApp({ name })} required />
+        <Field label="Bundle identifier" value={app.bundleIdentifier} onChange={(bundleIdentifier) => updateApp({ bundleIdentifier })} required />
         <Field label="Marketplace ID" value={app.marketplaceID} onChange={(marketplaceID) => updateApp({ marketplaceID })} />
-        <Field label="Developer" value={app.developerName} onChange={(developerName) => updateApp({ developerName })} />
+        <Field label="Developer" value={app.developerName} onChange={(developerName) => updateApp({ developerName })} required />
         <Field label="Subtitle" value={app.subtitle} onChange={(subtitle) => updateApp({ subtitle })} />
-        <Field label="Icon URL" value={app.iconURL} onChange={(iconURL) => updateApp({ iconURL })} />
+        <Field label="Icon URL" value={app.iconURL} onChange={(iconURL) => updateApp({ iconURL })} required />
         <Field label="Tint color" value={app.tintColor} onChange={(tintColor) => updateApp({ tintColor })} />
         <label className="field">
           <span>Category</span>
@@ -235,7 +235,7 @@ function AppEditor({
           </select>
         </label>
       </div>
-      <Field label="Localized description" value={app.localizedDescription} onChange={(localizedDescription) => updateApp({ localizedDescription })} textarea />
+      <Field label="Localized description" value={app.localizedDescription} onChange={(localizedDescription) => updateApp({ localizedDescription })} textarea required />
       <ScreenshotEditor app={app} updateApp={updateApp} />
 
       <div className="subsection-title">

@@ -5,6 +5,7 @@ export function Field({
   placeholder,
   textarea,
   type,
+  required,
 }: {
   label: string;
   value: string | undefined;
@@ -12,10 +13,14 @@ export function Field({
   placeholder?: string;
   textarea?: boolean;
   type?: string;
+  required?: boolean;
 }) {
   return (
     <label className="field">
-      <span>{label}</span>
+      <span>
+        {label}
+        {required && <span className="required-star">*</span>}
+      </span>
       {textarea ? (
         <textarea value={value ?? ""} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} rows={4} />
       ) : (

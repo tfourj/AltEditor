@@ -46,10 +46,10 @@ export function NewsEditor({ source, updateSource }: { source: AltSource; update
             </button>
           </summary>
           <div className="grid two">
-            <Field label="Title" value={item.title} onChange={(title) => updateNews(index, { title })} />
-            <Field label="Identifier" value={item.identifier} onChange={(identifier) => updateNews(index, { identifier })} />
-            <Field label="Caption" value={item.caption} onChange={(caption) => updateNews(index, { caption })} />
-            <Field label="Date" value={item.date} onChange={(date) => updateNews(index, { date })} />
+            <Field label="Title" value={item.title} onChange={(title) => updateNews(index, { title })} required />
+            <Field label="Identifier" value={item.identifier} onChange={(identifier) => updateNews(index, { identifier })} required />
+            <Field label="Caption" value={item.caption} onChange={(caption) => updateNews(index, { caption })} required />
+            <Field label="Date" value={item.date} onChange={(date) => updateNews(index, { date })} required />
             <Field label="Tint color" value={item.tintColor} onChange={(tintColor) => updateNews(index, { tintColor })} />
             <Field label="Image URL" value={item.imageURL} onChange={(imageURL) => updateNews(index, { imageURL })} />
             <Field label="URL" value={item.url} onChange={(url) => updateNews(index, { url })} />
