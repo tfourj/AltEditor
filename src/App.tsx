@@ -36,7 +36,6 @@ import {
 import type { AltApp, AltNewsItem, AltSource, AltVersion, ScreenshotItem, ValidationIssue } from "./types";
 
 const storageKey = "alteditor.source.v1";
-const freeimageHostApiKey = import.meta.env.VITE_FREEIMAGE_HOST_API_KEY ?? "";
 const imageUploadEnabled = import.meta.env.VITE_ENABLE_IMAGE_UPLOAD === "true";
 
 type ScreenshotDevice = "iphone" | "ipad";
@@ -119,14 +118,11 @@ const asFiniteNumber = (value: unknown): number | undefined => {
   return Number.isFinite(number) ? number : undefined;
 };
 
-const uploadToFreeimageHost = async (file: File, apiKey: string): Promise<ScreenshotObject> => {
+const uploadToFreeimageHost = async (file: File): Promise<ScreenshotObject> => {
   const formData = new FormData();
-  formData.append("key", apiKey);
-  formData.append("action", "upload");
-  formData.append("format", "json");
   formData.append("source", file);
 
-  const response = await fetch("https://freeimage.host/api/1/upload", {
+  const response = await fetch("/api/freeimage-upload", {
     method: "POST",
     body: formData,
   });
@@ -287,7 +283,6 @@ function ScreenshotDeviceSection({
   updateScreenshot,
   moveScreenshot,
   removeScreenshot,
-  uploadApiKey,
   imageUploadEnabled,
 }: {
   device: ScreenshotDevice;
@@ -296,7 +291,6 @@ function ScreenshotDeviceSection({
   updateScreenshot: (device: ScreenshotDevice, index: number, item: ScreenshotObject) => void;
   moveScreenshot: (device: ScreenshotDevice, index: number, direction: -1 | 1) => void;
   removeScreenshot: (device: ScreenshotDevice, index: number) => void;
-  uploadApiKey: string;
   imageUploadEnabled: boolean;
 }) {
   const [url, setUrl] = useState("");
@@ -332,15 +326,11 @@ function ScreenshotDeviceSection({
       setStatus("Image uploads are disabled");
       return;
     }
-    if (!uploadApiKey.trim()) {
-      setStatus("Freeimage.host API key is not configured");
-      return;
-    }
 
     setBusy(true);
     setStatus(`Uploading ${file.name}`);
     try {
-      const [localSize, uploaded] = await Promise.all([getFileImageSize(file), uploadToFreeimageHost(file, uploadApiKey.trim())]);
+      const [localSize, uploaded] = await Promise.all([getFileImageSize(file), uploadToFreeimageHost(file)]);
       const width = uploaded.width ?? localSize.width;
       const height = uploaded.height ?? localSize.height;
       addScreenshot(device, { ...uploaded, width, height });
@@ -363,7 +353,7 @@ function ScreenshotDeviceSection({
         </div>
         {imageUploadEnabled && (
           <div className="button-row">
-            <button className="secondary" disabled={busy || !uploadApiKey.trim()} onClick={() => fileInput.current?.click()} type="button">
+            <button className="secondary" disabled={busy} onClick={() => fileInput.current?.click()} type="button">
               <Upload size={15} /> Upload
             </button>
             <input ref={fileInput} hidden type="file" accept="image/*" onChange={uploadFile} />
@@ -453,7 +443,6 @@ function ScreenshotEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
             key={device}
             device={device}
             items={lists[device]}
-            uploadApiKey={freeimageHostApiKey}
             imageUploadEnabled={imageUploadEnabled}
             addScreenshot={(target, item) => setDeviceItems(target, [...lists[target], item])}
             updateScreenshot={(target, index, item) => setDeviceItems(target, lists[target].map((current, itemIndex) => (itemIndex === index ? item : current)))}
