@@ -165,7 +165,6 @@ export default function App() {
             ...app,
             ...patch,
             versions: addVersion && !hasVersion ? [version, ...app.versions] : app.versions,
-            appPermissions: scannedApp.appPermissions,
           };
         }),
       });
