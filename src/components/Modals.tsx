@@ -47,6 +47,45 @@ export function CodeModal({ code, close }: { code: string; close: () => void }) 
   );
 }
 
+export function ImportUrlModal({ close, importing, importFromUrl }: { close: () => void; importing: boolean; importFromUrl: (url: string) => void }) {
+  const [url, setUrl] = useState("");
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <form
+        className="modal import-url-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          importFromUrl(url);
+        }}
+      >
+        <div className="modal-header">
+          <div>
+            <p className="eyebrow">Import source</p>
+            <h2>Import JSON from URL</h2>
+          </div>
+          <button className="secondary" onClick={close} type="button">
+            Close
+          </button>
+        </div>
+        <p className="block-header">Enter a public JSON URL. The host must allow browser requests with CORS.</p>
+        <label className="field">
+          <span>JSON URL</span>
+          <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/source.json" type="url" required />
+        </label>
+        <div className="button-row">
+          <button disabled={importing || !url.trim()} type="submit">
+            {importing ? "Importing..." : "Import URL"}
+          </button>
+          <button className="secondary" onClick={close} type="button">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export type ScannedFieldKey = "name" | "bundleIdentifier" | "marketplaceID";
 
 export function ScannedArchiveModal({

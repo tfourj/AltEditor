@@ -874,6 +874,10 @@ details > :not(summary) {
   max-width: 620px;
 }
 
+.import-url-modal {
+  max-width: 560px;
+}
+
 .block-header {
   color: #66758d;
   font-size: 13px;

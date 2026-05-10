@@ -4,12 +4,14 @@ import type { StoredSource } from "../lib/sourceStorage";
 export function HomeScreen({
   createExample,
   importProject,
+  importFromUrl,
   notice,
   savedSources,
   openSource,
 }: {
   createExample: () => void;
   importProject: () => void;
+  importFromUrl: () => void;
   notice: string;
   savedSources: StoredSource[];
   openSource: (id: string) => void;
@@ -54,6 +56,9 @@ export function HomeScreen({
           </button>
           <button className="secondary" onClick={importProject} type="button">
             <Import size={17} /> Import JSON
+          </button>
+          <button className="secondary" onClick={importFromUrl} type="button">
+            <Import size={17} /> Import URL
           </button>
         </div>
         {notice && <div className="home-notice">{notice}</div>}

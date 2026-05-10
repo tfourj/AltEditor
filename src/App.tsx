@@ -5,7 +5,7 @@ import { scanArchiveForApp } from "./archiveScanner";
 import { AppsEditor } from "./components/AppsEditor";
 import { HomeScreen } from "./components/HomeScreen";
 import { ImagePreview } from "./components/ImagePreview";
-import { CodeModal, ScannedArchiveModal, type ScannedFieldKey } from "./components/Modals";
+import { CodeModal, ImportUrlModal, ScannedArchiveModal, type ScannedFieldKey } from "./components/Modals";
 import { NewsEditor } from "./components/NewsEditor";
 import { SourceEditor } from "./components/SourceEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
@@ -17,6 +17,8 @@ export default function App() {
   const [store, setStore] = useState<SourcesStore>(readSourcesStore);
   const [activeTab, setActiveTab] = useState<"source" | "apps" | "news">("source");
   const [showCode, setShowCode] = useState(false);
+  const [showImportUrl, setShowImportUrl] = useState(false);
+  const [importingUrl, setImportingUrl] = useState(false);
   const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
   const [notice, setNotice] = useState("");
   const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
@@ -82,22 +84,48 @@ export default function App() {
     setNotice("Source duplicated");
   };
 
+  const importSourceText = (text: string, label: string) => {
+    const parsed = parseSourceText(text);
+    const existing = store.sources.find((s) => s.source.name === parsed.name);
+    if (existing) {
+      setPendingImport({ source: parsed, fileName: label });
+      return;
+    }
+    addSource(parsed);
+    setActiveTab("source");
+    setNotice(`Imported ${label}`);
+  };
+
   const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     try {
-      const parsed = parseSourceText(await file.text());
-      const existing = store.sources.find((s) => s.source.name === parsed.name);
-      if (existing) {
-        setPendingImport({ source: parsed, fileName: file.name });
-        return;
-      }
-      addSource(parsed);
-      setActiveTab("source");
-      setNotice(`Imported ${file.name}`);
+      importSourceText(await file.text(), file.name);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Import failed.");
+    }
+  };
+
+  const importJsonFromUrl = async (url: string) => {
+    const sourceUrl = url.trim();
+    if (!sourceUrl) return;
+    setImportingUrl(true);
+    try {
+      const parsedUrl = new URL(sourceUrl);
+      if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+        throw new Error("URL must start with http:// or https://");
+      }
+      const response = await fetch(parsedUrl.toString(), { cache: "no-cache" });
+      if (!response.ok) throw new Error(`Import failed with HTTP ${response.status}`);
+      importSourceText(await response.text(), parsedUrl.toString());
+      setShowImportUrl(false);
+    } catch (error) {
+      setNotice(
+        error instanceof TypeError ? "Import failed. The URL may be blocked by CORS." : error instanceof Error ? error.message : "Import failed.",
+      );
+    } finally {
+      setImportingUrl(false);
     }
   };
 
@@ -186,11 +214,13 @@ export default function App() {
         <HomeScreen
           createExample={createExample}
           importProject={() => importInput.current?.click()}
+          importFromUrl={() => setShowImportUrl(true)}
           notice={notice}
           savedSources={store.sources}
           openSource={selectSource}
         />
         <input ref={importInput} hidden type="file" accept=".json,.md,.txt" onChange={importJson} />
+        {showImportUrl && <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} />}
         {pendingImport && (
           <div className="modal-backdrop" role="dialog" aria-modal="true">
             <div className="modal">
@@ -279,6 +309,9 @@ export default function App() {
           <button onClick={() => importInput.current?.click()} type="button">
             <Import size={17} /> Import JSON
           </button>
+          <button onClick={() => setShowImportUrl(true)} type="button">
+            <Import size={17} /> Import URL
+          </button>
           <button onClick={() => downloadText(toFileName(source.name), code)} type="button">
             <Download size={17} /> Export JSON
           </button>
@@ -323,6 +356,7 @@ export default function App() {
       </main>
 
       {showCode && <CodeModal code={code} close={() => setShowCode(false)} />}
+      {showImportUrl && <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} />}
       {scannedApp && (
         <ScannedArchiveModal
           app={scannedApp}
