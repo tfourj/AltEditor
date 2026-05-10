@@ -113,7 +113,7 @@ export function ScannedArchiveModal({
             <span>Version</span>
             <strong>
               {version.version || "Not found"}
-              {versionExists ? <em className="badge muted">Exists</em> : <em className="badge">Added</em>}
+              {versionExists ? <em className="badge muted">Exists</em> : <em className="badge">New</em>}
             </strong>
           </div>
           <div className="scan-info-row">
