@@ -48,6 +48,7 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [noticeFading, setNoticeFading] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
 
   const source = useMemo(() => {
@@ -95,7 +96,15 @@ export default function App() {
   const selectSource = (id: string) =>
     setStore((prev) => (prev.sources.some((s) => s.id === id) ? { ...prev, activeId: id } : prev));
 
-  const deleteSource = (id: string) => {
+  const requestDeleteSource = (id: string) => {
+    const target = store.sources.find((s) => s.id === id);
+    if (!target) return;
+    setPendingDelete({ id, name: target.source.name || "Untitled Source" });
+  };
+
+  const confirmDeleteSource = () => {
+    if (!pendingDelete) return;
+    const id = pendingDelete.id;
     setStore((prev) => {
       const nextSources = prev.sources.filter((s) => s.id !== id);
       return {
@@ -103,6 +112,7 @@ export default function App() {
         activeId: prev.activeId === id ? (nextSources[0]?.id ?? null) : prev.activeId,
       };
     });
+    setPendingDelete(null);
     setNotice("Source deleted");
   };
 
@@ -333,7 +343,7 @@ export default function App() {
             </button>
             <button
               title="Delete source"
-              onClick={() => store.activeId && deleteSource(store.activeId)}
+              onClick={() => store.activeId && requestDeleteSource(store.activeId)}
               type="button"
             >
               <Trash2 size={14} />
@@ -426,6 +436,29 @@ export default function App() {
                 Add anyway
               </button>
               <button className="secondary" onClick={() => resolveImport("cancel")} type="button">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingDelete && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-header">
+              <div>
+                <p className="eyebrow">Delete source</p>
+                <h2>Confirm deletion</h2>
+              </div>
+            </div>
+            <p>
+              Delete &ldquo;{pendingDelete.name}&rdquo;? This cannot be undone.
+            </p>
+            <div className="button-row">
+              <button onClick={confirmDeleteSource} type="button">
+                Delete
+              </button>
+              <button className="secondary" onClick={() => setPendingDelete(null)} type="button">
                 Cancel
               </button>
             </div>
