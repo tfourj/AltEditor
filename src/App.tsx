@@ -13,6 +13,19 @@ import { clone, downloadText, generateId, readSourcesStore, toFileName, writeSou
 import { compactForExport, exampleSource, makeApp, parseSourceText, validateSource } from "./sourceModel";
 import type { AltApp, AltSource } from "./types";
 
+const IMPORT_URL_HISTORY_KEY = "alteditor.importUrlHistory";
+
+function saveImportUrl(url: string) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(IMPORT_URL_HISTORY_KEY) ?? "[]");
+    const urls = Array.isArray(stored) ? stored.filter((item): item is string => typeof item === "string") : [];
+    const nextUrls = [url, ...urls.filter((item) => item !== url)].slice(0, 5);
+    localStorage.setItem(IMPORT_URL_HISTORY_KEY, JSON.stringify(nextUrls));
+  } catch {
+    localStorage.setItem(IMPORT_URL_HISTORY_KEY, JSON.stringify([url]));
+  }
+}
+
 export default function App() {
   const [store, setStore] = useState<SourcesStore>(readSourcesStore);
   const [activeTab, setActiveTab] = useState<"source" | "apps" | "news">("source");
@@ -119,6 +132,7 @@ export default function App() {
       const response = await fetch(parsedUrl.toString(), { cache: "no-cache" });
       if (!response.ok) throw new Error(`Import failed with HTTP ${response.status}`);
       importSourceText(await response.text(), parsedUrl.toString());
+      saveImportUrl(parsedUrl.toString());
       setShowImportUrl(false);
     } catch (error) {
       setNotice(
