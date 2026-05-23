@@ -4,6 +4,48 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/alteditor.svg" />
+    <script>
+      (() => {
+        try {
+          if (localStorage.getItem("alteditor.theme") === "dark") {
+            document.documentElement.dataset.theme = "dark";
+          }
+        } catch {
+          // Keep the default light theme if storage is unavailable.
+        }
+      })();
+    </script>
+    <style>
+      html[data-theme="dark"],
+      html[data-theme="dark"] body,
+      html[data-theme="dark"] #root,
+      html[data-theme="dark"] .app-shell,
+      html[data-theme="dark"] .workspace {
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+
+      html[data-theme="dark"] .topbar,
+      html[data-theme="dark"] .toolbar-row,
+      html[data-theme="dark"] .panel,
+      html[data-theme="dark"] .validation,
+      html[data-theme="dark"] .empty,
+      html[data-theme="dark"] .nested,
+      html[data-theme="dark"] .home-panel,
+      html[data-theme="dark"] .modal {
+        background: #161b22;
+        border-color: #30363d;
+        color: #c9d1d9;
+      }
+
+      html[data-theme="dark"] input,
+      html[data-theme="dark"] textarea,
+      html[data-theme="dark"] select {
+        background: #0d1117;
+        border-color: #30363d;
+        color: #c9d1d9;
+      }
+    </style>
     <title>AltEditor</title>
   </head>
   <body>
