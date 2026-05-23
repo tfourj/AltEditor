@@ -177,12 +177,10 @@ function PermissionEditor({ app, updateApp }: { app: AltApp; updateApp: (patch: 
 
 function AppEditor({
   app,
-  index,
   updateApp,
   removeApp,
 }: {
   app: AltApp;
-  index: number;
   updateApp: (patch: Partial<AltApp>) => void;
   removeApp: () => void;
 }) {
@@ -195,8 +193,8 @@ function AppEditor({
   const safeVersionIndex = Math.min(selectedVersionIndex, Math.max(0, app.versions.length - 1));
 
   return (
-    <details className="panel item-panel" open={index === 0}>
-      <summary>
+    <div className="panel item-panel">
+      <div className="app-editor-header">
         <div className="summary-main">
           <ImagePreview url={app.iconURL} label={`${app.name} icon`} />
           <div>
@@ -204,19 +202,12 @@ function AppEditor({
             <span>{app.bundleIdentifier || "No bundle identifier"}</span>
           </div>
         </div>
-        <button
-          className="icon-button danger"
-          onClick={(event) => {
-            event.preventDefault();
-            removeApp();
-          }}
-          type="button"
-          aria-label="Remove app"
-        >
+        <button className="icon-button danger" onClick={removeApp} type="button" aria-label="Remove app">
           <Trash2 size={16} />
         </button>
-      </summary>
-      <div className="grid two">
+      </div>
+      <div className="app-editor-body">
+        <div className="grid two">
         <Field label="Name" value={app.name} onChange={(name) => updateApp({ name })} required />
         <Field label="Bundle identifier" value={app.bundleIdentifier} onChange={(bundleIdentifier) => updateApp({ bundleIdentifier })} required />
         <Field label="Marketplace ID" value={app.marketplaceID} onChange={(marketplaceID) => updateApp({ marketplaceID })} />
@@ -304,7 +295,8 @@ function AppEditor({
           />
         </div>
       )}
-    </details>
+      </div>
+    </div>
   );
 }
 
@@ -318,6 +310,16 @@ export function AppsEditor({
   scanArchive: (file: File) => Promise<void>;
 }) {
   const archiveInput = useRef<HTMLInputElement>(null);
+  const [selectedAppIndex, setSelectedAppIndex] = useState<number>(source.apps.length > 0 ? 0 : -1);
+
+  useEffect(() => {
+    if (source.apps.length === 0) {
+      setSelectedAppIndex(-1);
+    } else if (selectedAppIndex < 0 || selectedAppIndex >= source.apps.length) {
+      setSelectedAppIndex(0);
+    }
+  }, [source.apps.length]);
+
   const updateApp = (index: number, patch: Partial<AltApp>) => {
     updateSource({ apps: source.apps.map((app, itemIndex) => (itemIndex === index ? { ...app, ...patch } : app)) });
   };
@@ -333,7 +335,13 @@ export function AppsEditor({
           <button className="secondary" onClick={() => archiveInput.current?.click()} type="button">
             <FileArchive size={16} /> Scan IPA/ADP
           </button>
-          <button onClick={() => updateSource({ apps: [...source.apps, makeApp()] })} type="button">
+          <button
+            onClick={() => {
+              updateSource({ apps: [...source.apps, makeApp()] });
+              setSelectedAppIndex(source.apps.length);
+            }}
+            type="button"
+          >
             <Plus size={16} /> Add app
           </button>
         </div>
@@ -349,16 +357,35 @@ export function AppsEditor({
           }}
         />
       </div>
-      {!source.apps.length && <div className="empty">No apps found</div>}
-      {source.apps.map((app, index) => (
-        <AppEditor
-          key={`${app.bundleIdentifier}-${index}`}
-          app={app}
-          index={index}
-          updateApp={(patch) => updateApp(index, patch)}
-          removeApp={() => updateSource({ apps: source.apps.filter((_, itemIndex) => itemIndex !== index) })}
-        />
-      ))}
+      {source.apps.length === 0 && <div className="empty">No apps found</div>}
+      {source.apps.length > 0 && (
+        <>
+          <div className="tabs app-tabs">
+            {source.apps.map((app, index) => (
+              <div key={`${app.bundleIdentifier}-${index}`} className={`app-tab${selectedAppIndex === index ? " active" : ""}`}>
+                <button
+                  className={selectedAppIndex === index ? "active" : ""}
+                  onClick={() => setSelectedAppIndex(index)}
+                  type="button"
+                >
+                  <ImagePreview url={app.iconURL} label={`${app.name} icon`} />
+                  <span className="app-tab-name">{app.name || "Untitled app"}</span>
+                </button>
+              </div>
+            ))}
+          </div>
+          {selectedAppIndex >= 0 && selectedAppIndex < source.apps.length && (
+            <AppEditor
+              key={`${source.apps[selectedAppIndex].bundleIdentifier}-${selectedAppIndex}`}
+              app={source.apps[selectedAppIndex]}
+              updateApp={(patch) => updateApp(selectedAppIndex, patch)}
+              removeApp={() => {
+                updateSource({ apps: source.apps.filter((_, i) => i !== selectedAppIndex) });
+              }}
+            />
+          )}
+        </>
+      )}
     </section>
   );
 }
