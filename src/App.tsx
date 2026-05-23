@@ -1,4 +1,4 @@
-import { Code2, Copy, Download, ExternalLink, FileJson, Import, Newspaper, Plus, Smartphone, Trash2 } from "lucide-react";
+import { Code2, Copy, Download, ExternalLink, FileJson, Import, Moon, Newspaper, Plus, Smartphone, Sun, Trash2 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { scanArchiveForApp } from "./archiveScanner";
@@ -14,6 +14,12 @@ import { compactForExport, exampleSource, makeApp, parseSourceText, validateSour
 import type { AltApp, AltSource } from "./types";
 
 const IMPORT_URL_HISTORY_KEY = "alteditor.importUrlHistory";
+const THEME_KEY = "alteditor.theme";
+type ThemeMode = "light" | "dark";
+
+function readTheme(): ThemeMode {
+  return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+}
 
 function readImportUrls() {
   try {
@@ -39,6 +45,7 @@ function saveImportUrl(url: string) {
 
 export default function App() {
   const [store, setStore] = useState<SourcesStore>(readSourcesStore);
+  const [theme, setTheme] = useState<ThemeMode>(readTheme);
   const [activeTab, setActiveTab] = useState<"source" | "apps" | "news">("source");
   const [showCode, setShowCode] = useState(false);
   const [showImportUrl, setShowImportUrl] = useState(false);
@@ -73,6 +80,11 @@ export default function App() {
   useEffect(() => {
     writeSourcesStore(store);
   }, [store]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!notice) return;
@@ -256,6 +268,15 @@ export default function App() {
     setNotice("Created default example repo");
   };
 
+  const toggleTheme = () => setTheme((current) => (current === "light" ? "dark" : "light"));
+
+  const themeToggle = (
+    <button className="theme-toggle" onClick={toggleTheme} type="button" aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
+      {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+      {theme === "light" ? "Dark" : "Light"}
+    </button>
+  );
+
   if (!source) {
     return (
       <>
@@ -266,6 +287,7 @@ export default function App() {
           notice={notice}
           savedSources={store.sources}
           openSource={selectSource}
+          themeToggle={themeToggle}
         />
         <input ref={importInput} hidden type="file" accept=".json,.md,.txt" onChange={importJson} />
         {showImportUrl && (
@@ -311,6 +333,8 @@ export default function App() {
             <span>AltStore PAL repository editor</span>
           </div>
         </div>
+
+        {themeToggle}
 
         <div className="source-selector">
           <div className="source-selector-row">

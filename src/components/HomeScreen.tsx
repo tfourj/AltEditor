@@ -1,4 +1,5 @@
 import { Import, Pencil, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 import type { StoredSource } from "../lib/sourceStorage";
 
 export function HomeScreen({
@@ -8,6 +9,7 @@ export function HomeScreen({
   notice,
   savedSources,
   openSource,
+  themeToggle,
 }: {
   createExample: () => void;
   importProject: () => void;
@@ -15,6 +17,7 @@ export function HomeScreen({
   notice: string;
   savedSources: StoredSource[];
   openSource: (id: string) => void;
+  themeToggle: ReactNode;
 }) {
   return (
     <main className="home-screen">
@@ -25,6 +28,7 @@ export function HomeScreen({
             <h1>AltEditor</h1>
             <span>AltStore PAL repository editor</span>
           </div>
+          {themeToggle}
         </div>
 
         {savedSources.length > 0 && (
