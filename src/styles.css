@@ -878,6 +878,26 @@ details > :not(summary) {
   max-width: 560px;
 }
 
+.import-url-history {
+  display: grid;
+  gap: 8px;
+}
+
+.import-url-history span {
+  color: #44536a;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.import-url-history button {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .block-header {
   color: #66758d;
   font-size: 13px;

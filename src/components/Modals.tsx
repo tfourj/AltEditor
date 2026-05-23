@@ -52,7 +52,17 @@ export function CodeModal({ code, close }: { code: string; close: () => void }) 
   );
 }
 
-export function ImportUrlModal({ close, importing, importFromUrl }: { close: () => void; importing: boolean; importFromUrl: (url: string) => void }) {
+export function ImportUrlModal({
+  close,
+  importing,
+  importFromUrl,
+  recentUrls,
+}: {
+  close: () => void;
+  importing: boolean;
+  importFromUrl: (url: string) => void;
+  recentUrls: string[];
+}) {
   const [url, setUrl] = useState("");
 
   return (
@@ -88,6 +98,16 @@ export function ImportUrlModal({ close, importing, importFromUrl }: { close: () 
             required
           />
         </label>
+        {recentUrls.length > 0 && (
+          <div className="import-url-history">
+            <span>Recent URLs</span>
+            {recentUrls.map((recentUrl) => (
+              <button className="secondary" key={recentUrl} onClick={() => setUrl(recentUrl)} type="button">
+                {recentUrl}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="button-row">
           <button disabled={importing || !url.trim()} type="submit">
             {importing ? "Importing..." : "Import URL"}

@@ -15,14 +15,25 @@ import type { AltApp, AltSource } from "./types";
 
 const IMPORT_URL_HISTORY_KEY = "alteditor.importUrlHistory";
 
-function saveImportUrl(url: string) {
+function readImportUrls() {
   try {
     const stored = JSON.parse(localStorage.getItem(IMPORT_URL_HISTORY_KEY) ?? "[]");
-    const urls = Array.isArray(stored) ? stored.filter((item): item is string => typeof item === "string") : [];
+    return Array.isArray(stored) ? stored.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveImportUrl(url: string) {
+  try {
+    const urls = readImportUrls();
     const nextUrls = [url, ...urls.filter((item) => item !== url)].slice(0, 5);
     localStorage.setItem(IMPORT_URL_HISTORY_KEY, JSON.stringify(nextUrls));
+    return nextUrls;
   } catch {
-    localStorage.setItem(IMPORT_URL_HISTORY_KEY, JSON.stringify([url]));
+    const nextUrls = [url];
+    localStorage.setItem(IMPORT_URL_HISTORY_KEY, JSON.stringify(nextUrls));
+    return nextUrls;
   }
 }
 
@@ -32,6 +43,7 @@ export default function App() {
   const [showCode, setShowCode] = useState(false);
   const [showImportUrl, setShowImportUrl] = useState(false);
   const [importingUrl, setImportingUrl] = useState(false);
+  const [importUrlHistory, setImportUrlHistory] = useState(readImportUrls);
   const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
   const [notice, setNotice] = useState("");
   const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
@@ -132,7 +144,7 @@ export default function App() {
       const response = await fetch(parsedUrl.toString(), { cache: "no-cache" });
       if (!response.ok) throw new Error(`Import failed with HTTP ${response.status}`);
       importSourceText(await response.text(), parsedUrl.toString());
-      saveImportUrl(parsedUrl.toString());
+      setImportUrlHistory(saveImportUrl(parsedUrl.toString()));
       setShowImportUrl(false);
     } catch (error) {
       setNotice(
@@ -234,7 +246,9 @@ export default function App() {
           openSource={selectSource}
         />
         <input ref={importInput} hidden type="file" accept=".json,.md,.txt" onChange={importJson} />
-        {showImportUrl && <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} />}
+        {showImportUrl && (
+          <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} recentUrls={importUrlHistory} />
+        )}
         {pendingImport && (
           <div className="modal-backdrop" role="dialog" aria-modal="true">
             <div className="modal">
@@ -370,7 +384,9 @@ export default function App() {
       </main>
 
       {showCode && <CodeModal code={code} close={() => setShowCode(false)} />}
-      {showImportUrl && <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} />}
+      {showImportUrl && (
+        <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} recentUrls={importUrlHistory} />
+      )}
       {scannedApp && (
         <ScannedArchiveModal
           app={scannedApp}
