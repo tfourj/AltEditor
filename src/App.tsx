@@ -334,7 +334,6 @@ export default function App() {
             <button
               title="Delete source"
               onClick={() => store.activeId && deleteSource(store.activeId)}
-              disabled={store.sources.length <= 1}
               type="button"
             >
               <Trash2 size={14} />
