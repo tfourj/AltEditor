@@ -18,7 +18,7 @@ function FeaturedAppsEditor({ source, updateSource }: { source: AltSource; updat
 
   const updateFeaturedApps = (apps: string[]) => {
     setFeaturedDrafts(apps.length ? apps : [""]);
-    updateSource({ featuredApps: apps.filter(Boolean) });
+    updateSource({ featuredApps: Array.from(new Set(apps.filter(Boolean))) });
   };
 
   return (
@@ -33,7 +33,9 @@ function FeaturedAppsEditor({ source, updateSource }: { source: AltSource; updat
         {featuredDrafts.map((bundleIdentifier, index) => (
           <div className="app-reference-row" key={`${bundleIdentifier}-${index}`}>
             <AppBundleSelect
-              apps={source.apps}
+              apps={source.apps.filter(
+                (app) => app.bundleIdentifier === bundleIdentifier || !featuredDrafts.includes(app.bundleIdentifier),
+              )}
               label="App"
               value={bundleIdentifier}
               onChange={(value) => updateFeaturedApps(featuredDrafts.map((item, itemIndex) => (itemIndex === index ? value : item)))}
