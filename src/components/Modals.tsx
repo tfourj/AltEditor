@@ -4,6 +4,11 @@ import { useState } from "react";
 import { formatBytes } from "../lib/images";
 import type { AltApp } from "../types";
 
+function withHttpsProtocol(url: string) {
+  const trimmedUrl = url.trim();
+  return trimmedUrl && !/^https?:\/\//i.test(trimmedUrl) ? `https://${trimmedUrl}` : trimmedUrl;
+}
+
 export function CodeModal({ code, close }: { code: string; close: () => void }) {
   const [copied, setCopied] = useState(false);
 
@@ -56,7 +61,9 @@ export function ImportUrlModal({ close, importing, importFromUrl }: { close: () 
         className="modal import-url-modal"
         onSubmit={(event) => {
           event.preventDefault();
-          importFromUrl(url);
+          const normalizedUrl = withHttpsProtocol(url);
+          setUrl(normalizedUrl);
+          importFromUrl(normalizedUrl);
         }}
       >
         <div className="modal-header">
@@ -71,7 +78,15 @@ export function ImportUrlModal({ close, importing, importFromUrl }: { close: () 
         <p className="block-header">Enter a public JSON URL. The host must allow browser requests with CORS.</p>
         <label className="field">
           <span>JSON URL</span>
-          <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/source.json" type="url" required />
+          <input
+            value={url}
+            onBlur={() => setUrl(withHttpsProtocol(url))}
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="https://example.com/source.json"
+            type="text"
+            inputMode="url"
+            required
+          />
         </label>
         <div className="button-row">
           <button disabled={importing || !url.trim()} type="submit">
