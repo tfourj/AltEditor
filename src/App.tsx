@@ -334,8 +334,6 @@ export default function App() {
           </div>
         </div>
 
-        {themeToggle}
-
         <div className="source-selector">
           <div className="source-selector-row">
             <ImagePreview url={source.iconURL} label="Current source icon" />
@@ -397,6 +395,7 @@ export default function App() {
         <ValidationPanel issues={issues} />
         {notice && <div className={`notice${noticeFading ? " fading" : ""}`}>{notice}</div>}
         <div className="sidebar-footer">
+          {themeToggle}
           <button onClick={() => window.open("https://github.com/tfourj/AltEditor", "_blank")} type="button" className="side-actions-btn">
             <ExternalLink size={17} /> GitHub Repo
           </button>

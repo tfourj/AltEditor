@@ -387,7 +387,7 @@ summary span {
 }
 
 .sidebar-footer {
-  align-items: center;
+  align-items: stretch;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -395,9 +395,14 @@ summary span {
   padding-top: 12px;
 }
 
+.sidebar-footer .theme-toggle {
+  justify-content: flex-start;
+}
+
 .sidebar-footer span {
   color: var(--sidebar-muted);
   font-size: 12px;
+  text-align: center;
 }
 
 .theme-toggle {
