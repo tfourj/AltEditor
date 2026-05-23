@@ -327,7 +327,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">A</div>
+          <img className="brand-mark" src="/alteditor.svg" alt="" />
           <div>
             <h1>AltEditor</h1>
             <span>AltStore PAL repository editor</span>

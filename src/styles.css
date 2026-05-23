@@ -233,14 +233,12 @@ button:disabled {
 
 .brand-mark {
   align-items: center;
-  background: var(--primary);
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
-  font-size: 24px;
-  font-weight: 800;
-  height: 44px;
+  height: 52px;
   justify-content: center;
-  width: 44px;
+  object-fit: cover;
+  width: 52px;
 }
 
 .brand h1,

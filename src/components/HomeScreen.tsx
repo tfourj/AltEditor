@@ -23,7 +23,7 @@ export function HomeScreen({
     <main className="home-screen">
       <section className="home-panel">
         <div className="brand home-brand">
-          <div className="brand-mark">A</div>
+          <img className="brand-mark" src="/alteditor.svg" alt="" />
           <div>
             <h1>AltEditor</h1>
             <span>AltStore PAL repository editor</span>
