@@ -46,6 +46,7 @@ export default function App() {
   const [importUrlHistory, setImportUrlHistory] = useState(readImportUrls);
   const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
   const [notice, setNotice] = useState("");
+  const [noticeFading, setNoticeFading] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
 
@@ -71,6 +72,17 @@ export default function App() {
   useEffect(() => {
     writeSourcesStore(store);
   }, [store]);
+
+  useEffect(() => {
+    if (!notice) return;
+    setNoticeFading(false);
+    const fadeTimeout = window.setTimeout(() => setNoticeFading(true), 4500);
+    const clearTimeout = window.setTimeout(() => setNotice(""), 5000);
+    return () => {
+      window.clearTimeout(fadeTimeout);
+      window.clearTimeout(clearTimeout);
+    };
+  }, [notice]);
 
   const addSource = (newSource: AltSource) => {
     const id = generateId();
@@ -350,7 +362,7 @@ export default function App() {
         <input ref={importInput} hidden type="file" accept=".json,.md,.txt" onChange={importJson} />
 
         <ValidationPanel issues={issues} />
-        {notice && <div className="notice">{notice}</div>}
+        {notice && <div className={`notice${noticeFading ? " fading" : ""}`}>{notice}</div>}
         <div className="sidebar-footer">
           <button onClick={() => window.open("https://github.com/tfourj/AltEditor", "_blank")} type="button" className="side-actions-btn">
             <ExternalLink size={17} /> GitHub Repo

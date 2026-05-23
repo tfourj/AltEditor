@@ -797,6 +797,14 @@ details > :not(summary) {
   color: #dbeafe;
   overflow-wrap: anywhere;
   padding: 12px;
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.notice.fading {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .status.ok {
