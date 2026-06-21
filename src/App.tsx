@@ -1,7 +1,7 @@
 import { Code2, Copy, Download, ExternalLink, FileJson, Import, Moon, Newspaper, Plus, Smartphone, Sun, Trash2 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { scanArchiveForApp } from "./archiveScanner";
+import { scanArchiveForApp, type ScannedArchive } from "./archiveScanner";
 import { AppsEditor } from "./components/AppsEditor";
 import { HomeScreen } from "./components/HomeScreen";
 import { ImagePreview } from "./components/ImagePreview";
@@ -10,6 +10,7 @@ import { NewsEditor } from "./components/NewsEditor";
 import { SourceEditor } from "./components/SourceEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { clone, downloadText, generateId, readSourcesStore, toFileName, writeSourcesStore, type SourcesStore } from "./lib/sourceStorage";
+import { suggestDownloadUrl } from "./downloadUrlSuggestion";
 import { compactForExport, exampleSource, makeApp, parseSourceText, validateSource } from "./sourceModel";
 import type { AltApp, AltSource } from "./types";
 
@@ -51,7 +52,7 @@ export default function App() {
   const [showImportUrl, setShowImportUrl] = useState(false);
   const [importingUrl, setImportingUrl] = useState(false);
   const [importUrlHistory, setImportUrlHistory] = useState(readImportUrls);
-  const [scannedApp, setScannedApp] = useState<AltApp | null>(null);
+  const [scannedArchive, setScannedArchive] = useState<ScannedArchive | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeFading, setNoticeFading] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
@@ -214,8 +215,8 @@ export default function App() {
 
   const scanArchive = async (file: File) => {
     try {
-      const app = await scanArchiveForApp(file);
-      setScannedApp(app);
+      const archive = await scanArchiveForApp(file);
+      setScannedArchive(archive);
       setActiveTab("apps");
       setNotice(`Scanned ${file.name}`);
     } catch (error) {
@@ -223,8 +224,9 @@ export default function App() {
     }
   };
 
-  const importScannedApp = (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean) => {
-    if (!scannedApp || !source) return;
+  const importScannedApp = (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean, applySuggestedDownloadURL: boolean) => {
+    if (!scannedArchive || !source) return;
+    const scannedApp = scannedArchive.app;
     const targetIndex = source.apps.findIndex((app) => app.bundleIdentifier === scannedApp.bundleIdentifier);
     const patch: Partial<AltApp> = {};
     if (fields.name) patch.name = scannedApp.name;
@@ -247,7 +249,10 @@ export default function App() {
       updateSource({
         apps: source.apps.map((app, index) => {
           if (index !== targetIndex) return app;
-          const version = scannedApp.versions[0];
+          const scannedVersion = scannedApp.versions[0];
+          const suggestedDownloadURL =
+            scannedArchive.type === "adp" ? suggestDownloadUrl(app.versions, scannedVersion.version) : null;
+          const version = applySuggestedDownloadURL && suggestedDownloadURL ? { ...scannedVersion, downloadURL: suggestedDownloadURL } : scannedVersion;
           const hasVersion = app.versions.some((item) => item.version === version.version && item.buildVersion === version.buildVersion);
           return {
             ...app,
@@ -257,7 +262,7 @@ export default function App() {
         }),
       });
     }
-    setScannedApp(null);
+    setScannedArchive(null);
     setActiveTab("apps");
     setNotice("Imported scanned data");
   };
@@ -431,11 +436,19 @@ export default function App() {
       {showImportUrl && (
         <ImportUrlModal close={() => setShowImportUrl(false)} importing={importingUrl} importFromUrl={importJsonFromUrl} recentUrls={importUrlHistory} />
       )}
-      {scannedApp && (
+      {scannedArchive && (
         <ScannedArchiveModal
-          app={scannedApp}
-          targetApp={source.apps.find((app) => app.bundleIdentifier === scannedApp.bundleIdentifier)}
-          close={() => setScannedApp(null)}
+          app={scannedArchive.app}
+          targetApp={source.apps.find((app) => app.bundleIdentifier === scannedArchive.app.bundleIdentifier)}
+          suggestedDownloadURL={
+            scannedArchive.type === "adp"
+              ? suggestDownloadUrl(
+                  source.apps.find((app) => app.bundleIdentifier === scannedArchive.app.bundleIdentifier)?.versions ?? [],
+                  scannedArchive.app.versions[0].version,
+                )
+              : null
+          }
+          close={() => setScannedArchive(null)}
           importToEditor={importScannedApp}
         />
       )}

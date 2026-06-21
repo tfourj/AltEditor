@@ -126,13 +126,15 @@ export type ScannedFieldKey = "name" | "bundleIdentifier" | "marketplaceID";
 export function ScannedArchiveModal({
   app,
   targetApp,
+  suggestedDownloadURL,
   close,
   importToEditor,
 }: {
   app: AltApp;
   targetApp?: AltApp;
+  suggestedDownloadURL?: string | null;
   close: () => void;
-  importToEditor: (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean) => void;
+  importToEditor: (fields: Record<ScannedFieldKey, boolean>, addVersion: boolean, applySuggestedDownloadURL: boolean) => void;
 }) {
   const [fields, setFields] = useState<Record<ScannedFieldKey, boolean>>({
     name: Boolean(app.name),
@@ -140,6 +142,7 @@ export function ScannedArchiveModal({
     marketplaceID: Boolean(app.marketplaceID),
   });
   const [addVersion, setAddVersion] = useState(true);
+  const [applySuggestedDownloadURL, setApplySuggestedDownloadURL] = useState(false);
   const version = app.versions[0];
   const versionExists = Boolean(targetApp?.versions.some((item) => item.version === version.version && item.buildVersion === version.buildVersion));
   const canImportFields = Object.values(fields).some(Boolean);
@@ -177,7 +180,7 @@ export function ScannedArchiveModal({
               </span>
             </label>
           ))}
-          <button disabled={!canImportFields && !canAddVersion} onClick={() => importToEditor(fields, canAddVersion)} type="button">
+          <button disabled={!canImportFields && !canAddVersion} onClick={() => importToEditor(fields, canAddVersion, applySuggestedDownloadURL)} type="button">
             Import to editor
           </button>
         </div>
@@ -194,10 +197,19 @@ export function ScannedArchiveModal({
             <span>Size</span>
             <strong>{formatBytes(version.size)}</strong>
           </div>
+          {suggestedDownloadURL && (
+            <label className="scan-check-row">
+              <input checked={applySuggestedDownloadURL} type="checkbox" onChange={() => setApplySuggestedDownloadURL((current) => !current)} />
+              <span>
+                <small>Suggested download URL</small>
+                {suggestedDownloadURL}
+              </span>
+            </label>
+          )}
           <button
             className="secondary"
             disabled={versionExists}
-            onClick={() => importToEditor({ name: false, bundleIdentifier: false, marketplaceID: false }, true)}
+            onClick={() => importToEditor({ name: false, bundleIdentifier: false, marketplaceID: false }, true, applySuggestedDownloadURL)}
             type="button"
           >
             Add this version

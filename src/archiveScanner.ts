@@ -4,6 +4,11 @@ import { parse } from "plist";
 import type { AltApp, AltVersion } from "./types";
 import { makeApp, makeVersion } from "./sourceModel";
 
+export interface ScannedArchive {
+  app: AltApp;
+  type: "adp" | "ipa";
+}
+
 interface InfoPlist {
   CFBundleDisplayName?: string;
   CFBundleName?: string;
@@ -77,7 +82,7 @@ const appFromAdpManifest = (manifest: AdpManifest): AltApp => {
     version: String(manifest.shortVersionString ?? ""),
     buildVersion: String(manifest.bundleVersion ?? ""),
     date: new Date().toISOString(),
-    downloadURL: "manifest.json",
+    downloadURL: "",
     size,
     minOSVersion: String(manifest.minimumSystemVersions?.ios ?? ""),
   };
@@ -93,12 +98,12 @@ const appFromAdpManifest = (manifest: AdpManifest): AltApp => {
   };
 };
 
-export const scanArchiveForApp = async (file: File): Promise<AltApp> => {
+export const scanArchiveForApp = async (file: File): Promise<ScannedArchive> => {
   const zip = await JSZip.loadAsync(file);
   const manifestFile = Object.values(zip.files).find((entry) => /(^|\/)manifest\.json$/i.test(entry.name));
   if (manifestFile) {
     const manifest = JSON.parse(await manifestFile.async("text")) as AdpManifest;
-    return appFromAdpManifest(manifest);
+    return { app: appFromAdpManifest(manifest), type: "adp" };
   }
 
   const infoFile = Object.values(zip.files).find((entry) => /Payload\/[^/]+\.app\/Info\.plist$/i.test(entry.name) || /Info\.plist$/i.test(entry.name));
@@ -135,5 +140,5 @@ export const scanArchiveForApp = async (file: File): Promise<AltApp> => {
     },
   };
 
-  return app;
+  return { app, type: "ipa" };
 };
