@@ -1030,6 +1030,21 @@ details > :not(summary) {
   max-width: 560px;
 }
 
+.url-source-update-modal {
+  max-width: 560px;
+}
+
+.url-source-update-url {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  padding: 12px;
+}
+
 .import-url-history {
   display: grid;
   gap: 8px;

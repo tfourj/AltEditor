@@ -121,6 +121,44 @@ export function ImportUrlModal({
   );
 }
 
+export function UrlSourceUpdateModal({
+  sourceName,
+  url,
+  useLocal,
+  useUrl,
+}: {
+  sourceName: string;
+  url: string;
+  useLocal: () => void;
+  useUrl: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="modal url-source-update-modal">
+        <div className="modal-header">
+          <div>
+            <p className="eyebrow">Imported source changed</p>
+            <h2>Choose source version</h2>
+          </div>
+        </div>
+        <p>
+          The URL version of &ldquo;{sourceName}&rdquo; is different from the saved local version. Which one
+          should AltEditor keep?
+        </p>
+        <div className="url-source-update-url">{url}</div>
+        <div className="button-row">
+          <button onClick={useUrl} type="button">
+            Use URL
+          </button>
+          <button className="secondary" onClick={useLocal} type="button">
+            Use local
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export type ScannedFieldKey = "name" | "bundleIdentifier" | "marketplaceID";
 
 export function ScannedArchiveModal({

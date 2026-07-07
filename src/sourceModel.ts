@@ -280,5 +280,20 @@ const stripEmptyStrings = <T,>(value: T): T => {
   return value;
 };
 
-export const compactForExport = (source: AltSource): AltSource => stripEmptyStrings(JSON.parse(JSON.stringify(source)));
+export const compactForExport = (source: AltSource): AltSource =>
+  stripEmptyStrings(JSON.parse(JSON.stringify(source)));
 
+const sortForStableStringify = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(sortForStableStringify);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, sortForStableStringify(item)]),
+    );
+  }
+  return value;
+};
+
+export const sourceContentKey = (source: AltSource): string =>
+  JSON.stringify(sortForStableStringify(compactForExport(source)));

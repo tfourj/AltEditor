@@ -9,6 +9,7 @@ export interface StoredSource {
   id: string;
   source: AltSource;
   lastModified: number;
+  importUrl?: string;
 }
 
 export interface SourcesStore {
@@ -52,6 +53,7 @@ export const readSourcesStore = (): SourcesStore => {
               id: typeof s.id === "string" ? s.id : generateId(),
               source: normalizeSource(s.source),
               lastModified: typeof s.lastModified === "number" ? s.lastModified : Date.now(),
+              importUrl: typeof s.importUrl === "string" && s.importUrl.trim() ? s.importUrl.trim() : undefined,
             }))
           : [],
         activeId,

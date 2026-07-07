@@ -5,18 +5,49 @@ import { scanArchiveForApp, type ScannedArchive } from "./archiveScanner";
 import { AppsEditor } from "./components/AppsEditor";
 import { HomeScreen } from "./components/HomeScreen";
 import { ImagePreview } from "./components/ImagePreview";
-import { CodeModal, ImportUrlModal, ScannedArchiveModal, type ScannedFieldKey } from "./components/Modals";
+import {
+  CodeModal,
+  ImportUrlModal,
+  ScannedArchiveModal,
+  UrlSourceUpdateModal,
+  type ScannedFieldKey,
+} from "./components/Modals";
 import { NewsEditor } from "./components/NewsEditor";
 import { SourceEditor } from "./components/SourceEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { clone, downloadText, generateId, readSourcesStore, toFileName, writeSourcesStore, type SourcesStore } from "./lib/sourceStorage";
 import { suggestDownloadUrl } from "./downloadUrlSuggestion";
-import { compactForExport, exampleSource, makeApp, parseSourceText, validateSource } from "./sourceModel";
+import {
+  compactForExport,
+  exampleSource,
+  makeApp,
+  parseSourceText,
+  sourceContentKey,
+  validateSource,
+} from "./sourceModel";
 import type { AltApp, AltSource } from "./types";
 
 const IMPORT_URL_HISTORY_KEY = "alteditor.importUrlHistory";
 const THEME_KEY = "alteditor.theme";
 type ThemeMode = "light" | "dark";
+
+type PendingImport = {
+  source: AltSource;
+  fileName: string;
+  importUrl?: string;
+};
+
+type PendingUrlSourceUpdate = {
+  id: string;
+  localName: string;
+  remoteSource: AltSource;
+  url: string;
+};
+
+type UrlSourceCheckResult = PendingUrlSourceUpdate | { id: string; failed: true } | null;
+
+const isPendingUrlSourceUpdate = (result: UrlSourceCheckResult): result is PendingUrlSourceUpdate =>
+  Boolean(result && !("failed" in result));
 
 function readTheme(): ThemeMode {
   return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
@@ -55,9 +86,11 @@ export default function App() {
   const [scannedArchive, setScannedArchive] = useState<ScannedArchive | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeFading, setNoticeFading] = useState(false);
-  const [pendingImport, setPendingImport] = useState<{ source: AltSource; fileName: string } | null>(null);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
+  const [pendingUrlSourceUpdates, setPendingUrlSourceUpdates] = useState<PendingUrlSourceUpdate[]>([]);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const checkedImportUrls = useRef(false);
 
   const source = useMemo(() => {
     if (!store.activeId) return null;
@@ -98,10 +131,52 @@ export default function App() {
     };
   }, [notice]);
 
-  const addSource = (newSource: AltSource) => {
+  useEffect(() => {
+    if (checkedImportUrls.current) return;
+    checkedImportUrls.current = true;
+
+    const sourcesWithUrls = store.sources.filter((item) => item.importUrl);
+    if (!sourcesWithUrls.length) return;
+
+    const checkImportedSourceUrls = async () => {
+      const results = await Promise.all(
+        sourcesWithUrls.map(async (item): Promise<UrlSourceCheckResult> => {
+          try {
+            const url = item.importUrl!;
+            const response = await fetch(url, { cache: "no-cache" });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const remoteSource = parseSourceText(await response.text());
+            if (sourceContentKey(item.source) === sourceContentKey(remoteSource)) return null;
+
+            return {
+              id: item.id,
+              localName: item.source.name || "Untitled Source",
+              remoteSource,
+              url,
+            };
+          } catch {
+            return { id: item.id, failed: true };
+          }
+        }),
+      );
+
+      const updates = results.filter(isPendingUrlSourceUpdate);
+      if (updates.length) setPendingUrlSourceUpdates(updates);
+
+      const failedCount = results.filter((result) => result && "failed" in result).length;
+      if (failedCount > 0) {
+        setNotice(`Could not check ${failedCount} imported source URL${failedCount === 1 ? "" : "s"}.`);
+      }
+    };
+
+    void checkImportedSourceUrls();
+  }, [store.sources]);
+
+  const addSource = (newSource: AltSource, importUrl?: string) => {
     const id = generateId();
     setStore((prev) => ({
-      sources: [...prev.sources, { id, source: newSource, lastModified: Date.now() }],
+      sources: [...prev.sources, { id, source: newSource, lastModified: Date.now(), importUrl }],
       activeId: id,
     }));
   };
@@ -144,14 +219,14 @@ export default function App() {
     setNotice("Source duplicated");
   };
 
-  const importSourceText = (text: string, label: string) => {
+  const importSourceText = (text: string, label: string, importUrl?: string) => {
     const parsed = parseSourceText(text);
     const existing = store.sources.find((s) => s.source.name === parsed.name);
     if (existing) {
-      setPendingImport({ source: parsed, fileName: label });
+      setPendingImport({ source: parsed, fileName: label, importUrl });
       return;
     }
-    addSource(parsed);
+    addSource(parsed, importUrl);
     setActiveTab("source");
     setNotice(`Imported ${label}`);
   };
@@ -178,7 +253,7 @@ export default function App() {
       }
       const response = await fetch(parsedUrl.toString(), { cache: "no-cache" });
       if (!response.ok) throw new Error(`Import failed with HTTP ${response.status}`);
-      importSourceText(await response.text(), parsedUrl.toString());
+      importSourceText(await response.text(), parsedUrl.toString(), parsedUrl.toString());
       setImportUrlHistory(saveImportUrl(parsedUrl.toString()));
       setShowImportUrl(false);
     } catch (error) {
@@ -197,20 +272,44 @@ export default function App() {
       if (existing) {
         setStore((prev) => ({
           sources: prev.sources.map((s) =>
-            s.id === existing.id ? { ...s, source: pendingImport.source, lastModified: Date.now() } : s,
+            s.id === existing.id
+              ? { ...s, source: pendingImport.source, lastModified: Date.now(), importUrl: pendingImport.importUrl }
+              : s,
           ),
           activeId: existing.id,
         }));
         setNotice(`Replaced '${pendingImport.source.name}'`);
       }
     } else if (action === "add") {
-      addSource(pendingImport.source);
+      addSource(pendingImport.source, pendingImport.importUrl);
       setNotice(`Imported ${pendingImport.fileName}`);
     } else {
       setNotice("Import cancelled");
     }
     setPendingImport(null);
     setActiveTab("source");
+  };
+
+  const resolveUrlSourceUpdate = (action: "local" | "url") => {
+    const pendingUpdate = pendingUrlSourceUpdates[0];
+    if (!pendingUpdate) return;
+
+    if (action === "url") {
+      setStore((prev) => ({
+        sources: prev.sources.map((s) =>
+          s.id === pendingUpdate.id
+            ? { ...s, source: pendingUpdate.remoteSource, lastModified: Date.now(), importUrl: pendingUpdate.url }
+            : s,
+        ),
+        activeId: pendingUpdate.id,
+      }));
+      setActiveTab("source");
+      setNotice(`Updated ${pendingUpdate.remoteSource.name || "source"} from URL`);
+    } else {
+      setNotice(`Kept local ${pendingUpdate.localName}`);
+    }
+
+    setPendingUrlSourceUpdates((updates) => updates.slice(1));
   };
 
   const scanArchive = async (file: File) => {
@@ -282,6 +381,15 @@ export default function App() {
     </button>
   );
 
+  const urlSourceUpdateModal = pendingUrlSourceUpdates[0] ? (
+    <UrlSourceUpdateModal
+      sourceName={pendingUrlSourceUpdates[0].localName}
+      url={pendingUrlSourceUpdates[0].url}
+      useLocal={() => resolveUrlSourceUpdate("local")}
+      useUrl={() => resolveUrlSourceUpdate("url")}
+    />
+  ) : null;
+
   if (!source) {
     return (
       <>
@@ -324,6 +432,7 @@ export default function App() {
             </div>
           </div>
         )}
+        {urlSourceUpdateModal}
       </>
     );
   }
@@ -478,6 +587,7 @@ export default function App() {
           </div>
         </div>
       )}
+      {urlSourceUpdateModal}
       {pendingDelete && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal">
