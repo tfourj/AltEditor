@@ -18,7 +18,7 @@ export function NewsEditor({ source, updateSource }: { source: AltSource; update
           <p className="eyebrow">News</p>
           <h2>Announcements</h2>
         </div>
-        <button onClick={() => updateSource({ news: [...source.news, makeNewsItem()] })} type="button">
+        <button onClick={() => updateSource({ news: [makeNewsItem(), ...source.news] })} type="button">
           <Plus size={16} /> Add news
         </button>
       </div>
