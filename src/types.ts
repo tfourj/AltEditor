@@ -93,6 +93,7 @@ export interface AltSource {
   patreonURL?: string;
   fediUsername?: string;
   tintColor?: string;
+  nsfw: boolean;
   featuredApps: string[];
   apps: AltApp[];
   news: AltNewsItem[];
@@ -105,4 +106,3 @@ export interface ValidationIssue {
   message: string;
   level: "error" | "warning";
 }
-

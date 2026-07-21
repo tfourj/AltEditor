@@ -79,6 +79,14 @@ export function SourceEditor({ source, updateSource }: { source: AltSource; upda
         <Field label="Fediverse username" value={source.fediUsername} onChange={(fediUsername) => updateSource({ fediUsername })} />
         <Field label="Tint color" value={source.tintColor} onChange={(tintColor) => updateSource({ tintColor })} type="text" placeholder="#6156e2" />
       </div>
+      <label className="toggle inline-toggle">
+        <input
+          type="checkbox"
+          checked={source.nsfw}
+          onChange={(event) => updateSource({ nsfw: event.target.checked })}
+        />
+        Contains adult content (NSFW)
+      </label>
       <FeaturedAppsEditor source={source} updateSource={updateSource} />
     </section>
   );
