@@ -1,9 +1,10 @@
-function normalizeDateTime(value: string | undefined): string {
-  if (!value) return "";
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return value.slice(0, 16);
-  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10) + "T00:00";
-  return value;
-}
+import { useId } from "react";
+
+import {
+  currentTimestamp,
+  fromDateTimeInputValue,
+  toDateTimeInputValue,
+} from "../lib/dateTime";
 
 export function DateTimeField({
   label,
@@ -16,18 +17,36 @@ export function DateTimeField({
   onChange: (value: string) => void;
   required?: boolean;
 }) {
+  const inputId = useId();
+  const descriptionId = `${inputId}-description`;
+
   return (
-    <label className="field">
-      <span>
+    <div className="field">
+      <label className="field-label" htmlFor={inputId}>
         {label}
         {required && <span className="required-star">*</span>}
-      </span>
-      <input
-        type="datetime-local"
-        value={normalizeDateTime(value)}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
+      </label>
+      <div className="datetime-field-row">
+        <input
+          id={inputId}
+          type="datetime-local"
+          step="1"
+          value={toDateTimeInputValue(value)}
+          aria-describedby={descriptionId}
+          onChange={(event) => onChange(fromDateTimeInputValue(event.target.value))}
+        />
+        <button
+          className="secondary datetime-now-button"
+          onClick={() => onChange(currentTimestamp())}
+          type="button"
+        >
+          Use current time
+        </button>
+      </div>
+      <small className="timestamp-preview" id={descriptionId}>
+        Saved as <code>{value || "Choose a date and time"}</code>
+      </small>
+    </div>
   );
 }
 

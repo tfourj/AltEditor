@@ -591,16 +591,38 @@ summary,
   min-width: 0;
 }
 
-.required-star {
-  color: var(--danger-text);
-  margin-left: 2px;
-}
-
+.field-label,
 .field span,
 .toggle {
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 750;
+}
+
+.required-star {
+  color: var(--danger-text);
+  margin-left: 2px;
+}
+
+.datetime-field-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.datetime-now-button {
+  white-space: nowrap;
+}
+
+.timestamp-preview {
+  color: var(--text-soft);
+  font-size: 11px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.timestamp-preview code {
+  color: var(--text-muted);
 }
 
 input,
@@ -1172,7 +1194,8 @@ details > :not(summary) {
   .grid.three,
   .grid.four,
   .permission-editor,
-  .screenshot-devices {
+  .screenshot-devices,
+  .datetime-field-row {
     grid-template-columns: 1fr;
   }
 }
