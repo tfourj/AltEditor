@@ -9,6 +9,7 @@ AltStore PAL repository editor. Create, import, and manage AltStore source JSON 
 - Manage apps with multiple versions, permissions, and screenshots
 - Scan IPA and ADP archives to extract app metadata
 - News and announcement management
+- ISO 8601 timestamps with automatic device UTC-offset conversion
 - Source validation with inline issue reporting
 - Export formatted JSON for distribution
 - All data persists locally in the browser (localStorage)
