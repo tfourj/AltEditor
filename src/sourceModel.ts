@@ -13,6 +13,7 @@ import {
   currentTimestamp,
   isIso8601Date,
   isIso8601DateTimeWithOffset,
+  normalizeTimestamp,
 } from "./lib/dateTime";
 
 export const categories: AltCategory[] = [
@@ -141,7 +142,7 @@ export const normalizeVersion = (value: unknown): AltVersion => {
     version: asString(record.version),
     buildVersion: asString(record.buildVersion),
     marketingVersion: asString(record.marketingVersion) || undefined,
-    date: asString(record.date),
+    date: normalizeTimestamp(asString(record.date)),
     localizedDescription: asString(record.localizedDescription),
     downloadURL: asString(record.downloadURL),
     size: asNumber(record.size),
@@ -179,7 +180,7 @@ export const normalizeNewsItem = (value: unknown): AltNewsItem => {
     title: asString(record.title),
     identifier: asString(record.identifier),
     caption: asString(record.caption),
-    date: asString(record.date),
+    date: normalizeTimestamp(asString(record.date), true),
     tintColor: asString(record.tintColor),
     imageURL: asString(record.imageURL),
     notify: asBoolean(record.notify),
@@ -304,7 +305,7 @@ const stripEmptyStrings = <T,>(value: T): T => {
 };
 
 export const compactForExport = (source: AltSource): AltSource =>
-  stripEmptyStrings(JSON.parse(JSON.stringify(source)));
+  stripEmptyStrings(normalizeSource(source));
 
 const sortForStableStringify = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(sortForStableStringify);

@@ -1,8 +1,10 @@
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const LOCAL_DATE_TIME_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
-const OFFSET_DATE_TIME_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/;
+const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const NUMERIC_OFFSET_DATE_TIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?[+-]\d{2}:\d{2}$/;
 
 const pad = (value: number): string => String(value).padStart(2, "0");
 
@@ -44,7 +46,7 @@ export const formatTimestampWithOffset = (date: Date): string =>
 export const toDateTimeInputValue = (value: string | undefined): string => {
   if (!value) return "";
 
-  if (OFFSET_DATE_TIME_PATTERN.test(value)) {
+  if (ISO_DATE_TIME_PATTERN.test(value)) {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? "" : formatLocalDateTime(date);
   }
@@ -60,8 +62,27 @@ export const fromDateTimeInputValue = (value: string): string => {
   return date ? formatTimestampWithOffset(date) : value;
 };
 
+export const normalizeTimestamp = (
+  value: string,
+  preserveDateOnly = false,
+): string => {
+  if (!value) return value;
+  if (DATE_ONLY_PATTERN.test(value)) {
+    return preserveDateOnly
+      ? value
+      : fromDateTimeInputValue(`${value}T00:00:00`);
+  }
+
+  if (ISO_DATE_TIME_PATTERN.test(value)) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : formatTimestampWithOffset(date);
+  }
+
+  return fromDateTimeInputValue(value);
+};
+
 export const isIso8601DateTimeWithOffset = (value: string): boolean => {
-  if (!OFFSET_DATE_TIME_PATTERN.test(value)) return false;
+  if (!NUMERIC_OFFSET_DATE_TIME_PATTERN.test(value)) return false;
   return !Number.isNaN(new Date(value).getTime());
 };
 
