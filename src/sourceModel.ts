@@ -9,6 +9,11 @@ import type {
   ScreenshotItem,
   ValidationIssue,
 } from "./types";
+import {
+  currentTimestamp,
+  isIso8601Date,
+  isIso8601DateTimeWithOffset,
+} from "./lib/dateTime";
 
 export const categories: AltCategory[] = [
   "developer",
@@ -49,7 +54,7 @@ const asStringArray = (value: unknown): string[] => (Array.isArray(value) ? valu
 export const makeVersion = (): AltVersion => ({
   version: "",
   buildVersion: "",
-  date: new Date().toISOString().slice(0, 16),
+  date: currentTimestamp(),
   localizedDescription: "",
   downloadURL: "",
   size: 0,
@@ -80,7 +85,7 @@ export const makeNewsItem = (): AltNewsItem => ({
   title: "New Announcement",
   identifier: `news_${Math.random().toString(36).slice(2, 12)}`,
   caption: "",
-  date: new Date().toISOString().slice(0, 16),
+  date: currentTimestamp(),
   tintColor: "#6156e2",
   imageURL: "",
   notify: false,
@@ -243,7 +248,15 @@ export const validateSource = (source: AltSource): ValidationIssue[] => {
       const versionBase = `${base}.versions[${versionIndex}]`;
       if (!version.version.trim()) addIssue(issues, `${versionBase}.version`, "Version is required.");
       if (!version.buildVersion.trim()) addIssue(issues, `${versionBase}.buildVersion`, "Build version is required.");
-      if (!version.date.trim()) addIssue(issues, `${versionBase}.date`, "Date is required.");
+      if (!version.date.trim()) {
+        addIssue(issues, `${versionBase}.date`, "Date is required.");
+      } else if (!isIso8601DateTimeWithOffset(version.date)) {
+        addIssue(
+          issues,
+          `${versionBase}.date`,
+          "Date must be an ISO 8601 datetime with a UTC offset.",
+        );
+      }
       if (!version.downloadURL.trim()) addIssue(issues, `${versionBase}.downloadURL`, "Download URL is required.");
       if (!Number.isFinite(version.size) || version.size < 0) addIssue(issues, `${versionBase}.size`, "Size must be zero or a positive number.");
     });
@@ -259,7 +272,15 @@ export const validateSource = (source: AltSource): ValidationIssue[] => {
     if (!item.identifier.trim()) addIssue(issues, `${base}.identifier`, "News identifier is required.");
     if (item.identifier && newsCounts.get(item.identifier)! > 1) addIssue(issues, `${base}.identifier`, "News identifier must be unique.");
     if (!item.caption.trim()) addIssue(issues, `${base}.caption`, "Caption is required.");
-    if (!item.date.trim()) addIssue(issues, `${base}.date`, "Date is required.");
+    if (!item.date.trim()) {
+      addIssue(issues, `${base}.date`, "Date is required.");
+    } else if (!isIso8601Date(item.date)) {
+      addIssue(
+        issues,
+        `${base}.date`,
+        "Date must be YYYY-MM-DD or an ISO 8601 datetime with a UTC offset.",
+      );
+    }
     if (!isHexColor(item.tintColor)) addIssue(issues, `${base}.tintColor`, "Tint color must be a hex color.");
   });
 
