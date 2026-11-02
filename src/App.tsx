@@ -349,13 +349,7 @@ export default function App() {
       setActiveTab("source");
       setNotice(`Updated ${pendingUpdate.remoteSource.name || "source"} from URL`);
     } else {
-      setStore((prev) => ({
-        ...prev,
-        sources: prev.sources.map((s) =>
-          s.id === pendingUpdate.id ? { ...s, remoteKey: pendingUpdate.remoteKey } : s,
-        ),
-      }));
-      setNotice(`Kept local ${pendingUpdate.localName}`);
+      setNotice(`Kept local ${pendingUpdate.localName} until next refresh`);
     }
 
     setPendingUrlSourceUpdates((updates) => updates.slice(1));
