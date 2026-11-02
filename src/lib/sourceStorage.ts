@@ -10,6 +10,7 @@ export interface StoredSource {
   source: AltSource;
   lastModified: number;
   importUrl?: string;
+  remoteKey?: string;
 }
 
 export interface SourcesStore {
@@ -54,6 +55,7 @@ export const readSourcesStore = (): SourcesStore => {
               source: normalizeSource(s.source),
               lastModified: typeof s.lastModified === "number" ? s.lastModified : Date.now(),
               importUrl: typeof s.importUrl === "string" && s.importUrl.trim() ? s.importUrl.trim() : undefined,
+              remoteKey: typeof s.remoteKey === "string" ? s.remoteKey : undefined,
             }))
           : [],
         activeId,

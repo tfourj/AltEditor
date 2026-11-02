@@ -124,11 +124,13 @@ export function ImportUrlModal({
 export function UrlSourceUpdateModal({
   sourceName,
   url,
+  hasLocalChanges,
   useLocal,
   useUrl,
 }: {
   sourceName: string;
   url: string;
+  hasLocalChanges: boolean;
   useLocal: () => void;
   useUrl: () => void;
 }) {
@@ -138,20 +140,20 @@ export function UrlSourceUpdateModal({
         <div className="modal-header">
           <div>
             <p className="eyebrow">Imported source changed</p>
-            <h2>Choose source version</h2>
+            <h2>Update available</h2>
           </div>
         </div>
         <p>
-          The URL version of &ldquo;{sourceName}&rdquo; is different from the saved local version. Which one
-          should AltEditor keep?
+          A new version of &ldquo;{sourceName}&rdquo; is available at its URL.
+          {hasLocalChanges ? " Updating will replace your local changes." : ""} Update to the URL version?
         </p>
         <div className="url-source-update-url">{url}</div>
         <div className="button-row">
           <button onClick={useUrl} type="button">
-            Use URL
+            Update
           </button>
           <button className="secondary" onClick={useLocal} type="button">
-            Use local
+            Keep local
           </button>
         </div>
       </div>

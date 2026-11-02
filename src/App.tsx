@@ -41,13 +41,25 @@ type PendingUrlSourceUpdate = {
   id: string;
   localName: string;
   remoteSource: AltSource;
+  remoteKey: string;
+  hasLocalChanges: boolean;
   url: string;
 };
 
-type UrlSourceCheckResult = PendingUrlSourceUpdate | { id: string; failed: true } | null;
+type SyncedUrlSource = { id: string; remoteKey: string };
+
+type UrlSourceCheckResult = PendingUrlSourceUpdate | SyncedUrlSource | { id: string; failed: true } | null;
 
 const isPendingUrlSourceUpdate = (result: UrlSourceCheckResult): result is PendingUrlSourceUpdate =>
-  Boolean(result && !("failed" in result));
+  Boolean(result && "remoteSource" in result);
+
+const isSyncedUrlSource = (result: UrlSourceCheckResult): result is SyncedUrlSource =>
+  Boolean(result && !("remoteSource" in result) && "remoteKey" in result);
+
+const urlSourceFields = (source: AltSource, importUrl?: string) => ({
+  importUrl,
+  remoteKey: importUrl ? sourceContentKey(source) : undefined,
+});
 
 function readTheme(): ThemeMode {
   return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
@@ -147,12 +159,17 @@ export default function App() {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const remoteSource = parseSourceText(await response.text());
-            if (sourceContentKey(item.source) === sourceContentKey(remoteSource)) return null;
+            const remoteKey = sourceContentKey(remoteSource);
+            const localKey = sourceContentKey(item.source);
+            if (remoteKey === item.remoteKey) return null;
+            if (remoteKey === localKey) return { id: item.id, remoteKey };
 
             return {
               id: item.id,
               localName: item.source.name || "Untitled Source",
               remoteSource,
+              remoteKey,
+              hasLocalChanges: localKey !== item.remoteKey,
               url,
             };
           } catch {
@@ -163,6 +180,17 @@ export default function App() {
 
       const updates = results.filter(isPendingUrlSourceUpdate);
       if (updates.length) setPendingUrlSourceUpdates(updates);
+
+      const synced = results.filter(isSyncedUrlSource);
+      if (synced.length) {
+        setStore((prev) => ({
+          ...prev,
+          sources: prev.sources.map((s) => {
+            const match = synced.find((item) => item.id === s.id);
+            return match ? { ...s, remoteKey: match.remoteKey } : s;
+          }),
+        }));
+      }
 
       const failedCount = results.filter((result) => result && "failed" in result).length;
       if (failedCount > 0) {
@@ -176,7 +204,10 @@ export default function App() {
   const addSource = (newSource: AltSource, importUrl?: string) => {
     const id = generateId();
     setStore((prev) => ({
-      sources: [...prev.sources, { id, source: newSource, lastModified: Date.now(), importUrl }],
+      sources: [
+        ...prev.sources,
+        { id, source: newSource, lastModified: Date.now(), ...urlSourceFields(newSource, importUrl) },
+      ],
       activeId: id,
     }));
   };
@@ -273,7 +304,12 @@ export default function App() {
         setStore((prev) => ({
           sources: prev.sources.map((s) =>
             s.id === existing.id
-              ? { ...s, source: pendingImport.source, lastModified: Date.now(), importUrl: pendingImport.importUrl }
+              ? {
+                  ...s,
+                  source: pendingImport.source,
+                  lastModified: Date.now(),
+                  ...urlSourceFields(pendingImport.source, pendingImport.importUrl),
+                }
               : s,
           ),
           activeId: existing.id,
@@ -298,7 +334,13 @@ export default function App() {
       setStore((prev) => ({
         sources: prev.sources.map((s) =>
           s.id === pendingUpdate.id
-            ? { ...s, source: pendingUpdate.remoteSource, lastModified: Date.now(), importUrl: pendingUpdate.url }
+            ? {
+                ...s,
+                source: pendingUpdate.remoteSource,
+                lastModified: Date.now(),
+                importUrl: pendingUpdate.url,
+                remoteKey: pendingUpdate.remoteKey,
+              }
             : s,
         ),
         activeId: pendingUpdate.id,
@@ -306,6 +348,12 @@ export default function App() {
       setActiveTab("source");
       setNotice(`Updated ${pendingUpdate.remoteSource.name || "source"} from URL`);
     } else {
+      setStore((prev) => ({
+        ...prev,
+        sources: prev.sources.map((s) =>
+          s.id === pendingUpdate.id ? { ...s, remoteKey: pendingUpdate.remoteKey } : s,
+        ),
+      }));
       setNotice(`Kept local ${pendingUpdate.localName}`);
     }
 
@@ -385,6 +433,7 @@ export default function App() {
     <UrlSourceUpdateModal
       sourceName={pendingUrlSourceUpdates[0].localName}
       url={pendingUrlSourceUpdates[0].url}
+      hasLocalChanges={pendingUrlSourceUpdates[0].hasLocalChanges}
       useLocal={() => resolveUrlSourceUpdate("local")}
       useUrl={() => resolveUrlSourceUpdate("url")}
     />
