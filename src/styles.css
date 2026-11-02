@@ -340,14 +340,20 @@ summary span {
   text-decoration: none;
 }
 
-.source-selector-row .url-badge {
-  background: var(--sidebar-panel-hover);
+.source-selector-actions .url-badge {
+  background: var(--sidebar-panel);
   border: 1px solid var(--sidebar-border);
-  color: var(--sidebar-text);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: var(--sidebar-muted);
+  height: 28px;
+  margin-left: auto;
+  padding: 0 10px;
 }
 
-.source-selector-row .url-badge:hover {
-  border-color: var(--primary);
+.source-selector-actions .url-badge:hover {
+  background: var(--sidebar-panel-hover);
+  color: var(--sidebar-text);
 }
 
 .source-selector-meta {

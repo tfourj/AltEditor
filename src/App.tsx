@@ -518,17 +518,6 @@ export default function App() {
                 </option>
               ))}
             </select>
-            {activeImportUrl && (
-              <a
-                className="url-badge"
-                href={activeImportUrl}
-                target="_blank"
-                rel="noreferrer"
-                title={`Imported from ${activeImportUrl}`}
-              >
-                <Link size={12} /> URL
-              </a>
-            )}
           </div>
           <span className="source-selector-meta">
             {source.subtitle || `${source.apps.length} apps, ${source.news.length} news items`}
@@ -551,6 +540,17 @@ export default function App() {
             >
               <Trash2 size={14} />
             </button>
+            {activeImportUrl && (
+              <a
+                className="url-badge"
+                href={activeImportUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={`Imported from ${activeImportUrl}`}
+              >
+                <Link size={12} /> URL
+              </a>
+            )}
           </div>
         </div>
 
