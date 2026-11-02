@@ -325,6 +325,31 @@ summary span {
   color: var(--sidebar-text);
 }
 
+.url-badge {
+  align-items: center;
+  background: var(--primary-soft);
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  gap: 4px;
+  padding: 3px 8px;
+  text-decoration: none;
+}
+
+.source-selector-row .url-badge {
+  background: var(--sidebar-panel-hover);
+  border: 1px solid var(--sidebar-border);
+  color: var(--sidebar-text);
+}
+
+.source-selector-row .url-badge:hover {
+  border-color: var(--primary);
+}
+
 .source-selector-meta {
   color: var(--sidebar-muted);
   display: block;

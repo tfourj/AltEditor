@@ -1,4 +1,4 @@
-import { Code2, Copy, Download, ExternalLink, FileJson, Import, Moon, Newspaper, Plus, Smartphone, Sun, Trash2 } from "lucide-react";
+import { Code2, Copy, Download, ExternalLink, FileJson, Import, Link, Moon, Newspaper, Plus, Smartphone, Sun, Trash2 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { scanArchiveForApp, type ScannedArchive } from "./archiveScanner";
@@ -108,6 +108,7 @@ export default function App() {
     if (!store.activeId) return null;
     return store.sources.find((s) => s.id === store.activeId)?.source ?? null;
   }, [store]);
+  const activeImportUrl = store.sources.find((s) => s.id === store.activeId)?.importUrl;
 
   const updateSource = (patch: Partial<AltSource>) =>
     setStore((prev) => {
@@ -511,6 +512,17 @@ export default function App() {
                 </option>
               ))}
             </select>
+            {activeImportUrl && (
+              <a
+                className="url-badge"
+                href={activeImportUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={`Imported from ${activeImportUrl}`}
+              >
+                <Link size={12} /> URL
+              </a>
+            )}
           </div>
           <span className="source-selector-meta">
             {source.subtitle || `${source.apps.length} apps, ${source.news.length} news items`}

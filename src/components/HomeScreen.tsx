@@ -1,4 +1,4 @@
-import { Import, Pencil, Plus } from "lucide-react";
+import { Import, Link, Pencil, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import type { StoredSource } from "../lib/sourceStorage";
 
@@ -43,6 +43,11 @@ export function HomeScreen({
               >
                 <Pencil size={15} />
                 <span>{s.source.name || "Untitled Source"}</span>
+                {s.importUrl && (
+                  <em className="url-badge" title={`Imported from ${s.importUrl}`}>
+                    <Link size={12} /> URL
+                  </em>
+                )}
                 <small>{s.source.apps.length} apps, {s.source.news.length} news</small>
               </button>
             ))}
