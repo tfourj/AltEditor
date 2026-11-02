@@ -56,6 +56,18 @@ const isPendingUrlSourceUpdate = (result: UrlSourceCheckResult): result is Pendi
 const isSyncedUrlSource = (result: UrlSourceCheckResult): result is SyncedUrlSource =>
   Boolean(result && !("remoteSource" in result) && "remoteKey" in result);
 
+const fetchLatestSource = async (url: string) => {
+  const freshUrl = new URL(url);
+  freshUrl.searchParams.set("_alteditor", Date.now().toString());
+  try {
+    const response = await fetch(freshUrl, { cache: "no-store" });
+    if (response.ok) return response;
+  } catch {
+    /* some hosts reject extra query params - retry the plain url */
+  }
+  return fetch(url, { cache: "no-store" });
+};
+
 const urlSourceFields = (source: AltSource, importUrl?: string) => ({
   importUrl,
   remoteKey: importUrl ? sourceContentKey(source) : undefined,
@@ -156,7 +168,7 @@ export default function App() {
         sourcesWithUrls.map(async (item): Promise<UrlSourceCheckResult> => {
           try {
             const url = item.importUrl!;
-            const response = await fetch(url, { cache: "no-cache" });
+            const response = await fetchLatestSource(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const remoteSource = parseSourceText(await response.text());
